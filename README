@@ -1,0 +1,4 @@
+# Unity Force Feedback
+
+This is a native plugin for Unity3D that interfaces with DirectInput to
+enable sending Force Feedback Effects to devices.
