@@ -19,6 +19,7 @@ namespace UnityFFB
 
         // Constant force properties
         public int force = 0;
+        public float sensitivity = 1.0f;
         public int[] axisDirections = new int[0];
 
         public bool ffbEnabled { get; private set; }
@@ -47,7 +48,7 @@ namespace UnityFFB
         {
             if (constantForceEnabled)
             {
-                UnityFFBNative.UpdateConstantForce(force, axisDirections);
+                UnityFFBNative.UpdateConstantForce((int)(force * sensitivity), axisDirections);
             }
         }
 
