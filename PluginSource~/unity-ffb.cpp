@@ -335,6 +335,12 @@ void StopAllFFBEffects()
    }
 }
 
+/**
+ * Update the gain for the specified effect.
+ *
+ * Takes gainPercent value between 0 - 1 and multiplies with
+ * DI_FFNOMINALMAX (10000)
+ */
 HRESULT UpdateEffectGain(Effects::Type effectType, float gainPercent)
 {
    if (g_mEffects.find(effectType) != g_mEffects.end())
@@ -342,7 +348,7 @@ HRESULT UpdateEffectGain(Effects::Type effectType, float gainPercent)
       LPDIRECTINPUTEFFECT pEffect = g_mEffects[effectType];
       DIEFFECT effect = g_mDIEFFECTs[effectType];
       effect.dwSize = sizeof(DIEFFECT);
-      effect.dwGain = gainPercent * DI_FFNOMINALMAX;
+      effect.dwGain = clamp(gainPercent * DI_FFNOMINALMAX, 0.0, 1.0);
 
       return pEffect->SetParameters(&effect, DIEP_GAIN | DIEP_START);
    }

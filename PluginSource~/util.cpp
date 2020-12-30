@@ -1,6 +1,9 @@
 #include "pch.h"
 #include "util.h"
 
+/**
+ * Helper function for converting wide strings to regular strings
+ */
 std::string utf16ToUTF8(const std::wstring &s)
 {
    const int size = ::WideCharToMultiByte(CP_UTF8, 0, s.c_str(), -1, NULL, 0, 0, NULL);
@@ -11,6 +14,9 @@ std::string utf16ToUTF8(const std::wstring &s)
    return std::string(&buf[0]);
 }
 
+/**
+ * Helper to find the main window handle for the given process ID.
+ */
 HWND FindMainWindow(unsigned long process_id)
 {
    handle_data data;
@@ -20,6 +26,10 @@ HWND FindMainWindow(unsigned long process_id)
    return data.window_handle;
 }
 
+/**
+ * Callback function for EnumWindows, this checks each window to see
+ * if the handle is the main window for the given process ID.
+ */
 BOOL CALLBACK _cbEnumWindows(HWND handle, LPARAM lParam)
 {
    handle_data& data = *(handle_data*)lParam;
@@ -31,11 +41,17 @@ BOOL CALLBACK _cbEnumWindows(HWND handle, LPARAM lParam)
    return FALSE;
 }
 
+/**
+ * Whether or not the handle is to the main window.
+ */
 BOOL IsMainWindow(HWND handle)
 {
    return GetWindow(handle, GW_OWNER) == (HWND)0 && IsWindowVisible(handle);
 }
 
+/**
+ * Converts a DirectInput Axis GUID to a DIJOYSTATE axis
+ */
 DWORD GuidToDIJOFS(GUID axisType)
 {
    if (axisType == GUID_XAxis)
@@ -64,4 +80,9 @@ DWORD GuidToDIJOFS(GUID axisType)
    }
 
    return 0;
+}
+
+float clamp(float val, float min, float max) {
+   const float outVal = val < min ? min : val;
+   return outVal > max ? max : outVal;
 }
