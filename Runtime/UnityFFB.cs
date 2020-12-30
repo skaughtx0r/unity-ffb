@@ -43,8 +43,21 @@ namespace UnityFFB
             }
         }
 
+        private void FixedUpdate()
+        {
+            if (constantForceEnabled)
+            {
+                UnityFFBNative.UpdateConstantForce(force, axisDirections);
+            }
+        }
+
         public void EnableForceFeedback()
         {
+            if (ffbEnabled)
+            {
+                return;
+            }
+
             if (UnityFFBNative.InitDirectInput() >= 0)
             {
                 ffbEnabled = true;
@@ -80,22 +93,12 @@ namespace UnityFFB
         public void DisableForceFeedback()
         {
             UnityFFBNative.Shutdown();
-        }
-
-        private void Start()
-        {
-            if(UnityFFBNative.AddFFBEffect(EffectsType.ConstantForce) == 0)
-            {
-                int hresult = UnityFFBNative.UpdateConstantForce(0, axisDirections);
-                constantForceEnabled = true;
-            }
-        }
-
-        private void FixedUpdate()
-        {
-            if (constantForceEnabled) {
-                UnityFFBNative.UpdateConstantForce(force, axisDirections);
-            }
+            ffbEnabled = false;
+            constantForceEnabled = false;
+            devices = new DeviceInfo[0];
+            activeDevice = null;
+            axes = new DeviceAxisInfo[0];
+            springConditions = new DICondition[0];
         }
 
         public void SelectDevice(string deviceGuid)
@@ -119,6 +122,12 @@ namespace UnityFFB
                         axes[i] = Marshal.PtrToStructure<DeviceAxisInfo>(pCurrent);
                         axisDirections[i] = 0;
                         springConditions[i] = new DICondition();
+                    }
+
+                    if (UnityFFBNative.AddFFBEffect(EffectsType.ConstantForce) == 0)
+                    {
+                        int hresult = UnityFFBNative.UpdateConstantForce(0, axisDirections);
+                        constantForceEnabled = true;
                     }
                 }
             }
