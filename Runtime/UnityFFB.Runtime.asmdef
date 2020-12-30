@@ -3,6 +3,7 @@
     "references": [],
     "optionalUnityReferences": [],
     "includePlatforms": [
+        "Editor",
         "LinuxStandalone64",
         "macOSStandalone",
         "WindowsStandalone64"
