@@ -348,7 +348,7 @@ HRESULT UpdateEffectGain(Effects::Type effectType, float gainPercent)
       LPDIRECTINPUTEFFECT pEffect = g_mEffects[effectType];
       DIEFFECT effect = g_mDIEFFECTs[effectType];
       effect.dwSize = sizeof(DIEFFECT);
-      effect.dwGain = clamp(gainPercent * DI_FFNOMINALMAX, 0.0, 1.0);
+      effect.dwGain = clamp(gainPercent, 0.0, 1.0) * DI_FFNOMINALMAX;
 
       return pEffect->SetParameters(&effect, DIEP_GAIN | DIEP_START);
    }
