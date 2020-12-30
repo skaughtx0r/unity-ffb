@@ -8,6 +8,15 @@ namespace UnityFFB
     {
         public static UnityFFB instance;
 
+        /// <summary>
+        /// Whether or not to enable Force Feedback when the behavior starts.
+        /// </summary>
+        public bool enableOnAwake = true;
+        /// <summary>
+        /// Whether or not to automatically select the first FFB device on start.
+        /// </summary>
+        public bool autoSelectFirstDevice = true;
+
         // Constant force properties
         public int force = 0;
         public int[] axisDirections = new int[0];
@@ -24,47 +33,19 @@ namespace UnityFFB
 
 #if UNITY_STANDALONE_WIN
 
-        [DllImport("UNITYFFB")]
-        private static extern int InitDirectInput();
-
-        [DllImport("UNITYFFB")]
-        private static extern IntPtr EnumerateFFBDevices(ref int deviceCount);
-
-        [DllImport("UNITYFFB")]
-        private static extern IntPtr EnumerateFFBAxes(ref int axisCount);
-
-        [DllImport("UNITYFFB")]
-        private static extern int CreateFFBDevice(string guidInstance);
-
-        [DllImport("UNITYFFB")]
-        private static extern int AddFFBEffect(EffectsType effectType);
-
-        [DllImport("UNITYFFB")]
-        private static extern int UpdateConstantForce(int magnitude, int[] directions);
-
-        [DllImport("UNITYFFB")]
-        private static extern int UpdateSpring(DICondition[] conditions);
-
-        [DllImport("UNITYFFB")]
-        private static extern void StartAllFFBEffects();
-
-        [DllImport("UNITYFFB")]
-        private static extern void StopAllFFBEffects();
-
-        [DllImport("UNITYFFB")]
-        private static extern void FreeFFBDevice();
-
-        [DllImport("UNITYFFB")]
-        private static extern void FreeDirectInput();
-
-        [DllImport("UNITYFFB")]
-        private static extern void Shutdown();
-
         void Awake()
         {
             instance = this;
 
-            if (InitDirectInput() >= 0)
+            if (enableOnAwake)
+            {
+                EnableForceFeedback();
+            }
+        }
+
+        public void EnableForceFeedback()
+        {
+            if (UnityFFBNative.InitDirectInput() >= 0)
             {
                 ffbEnabled = true;
             }
@@ -75,7 +56,7 @@ namespace UnityFFB
 
             int deviceCount = 0;
 
-            IntPtr ptrDevices = EnumerateFFBDevices(ref deviceCount);
+            IntPtr ptrDevices = UnityFFBNative.EnumerateFFBDevices(ref deviceCount);
 
             if (deviceCount > 0)
             {
@@ -89,40 +70,23 @@ namespace UnityFFB
                     devices[i] = Marshal.PtrToStructure<DeviceInfo>(pCurrent);
                 }
 
-                // For now just initialize the first FFB Device.
-                if (CreateFFBDevice(devices[0].guidInstance) == 0)
+                if (autoSelectFirstDevice)
                 {
-                    activeDevice = devices[0];
-                    int axisCount = 0;
-                    IntPtr ptrAxes = EnumerateFFBAxes(ref axisCount);
-                    if (axisCount > 0)
-                    {
-                        axes = new DeviceAxisInfo[axisCount];
-                        axisDirections = new int[axisCount];
-                        springConditions = new DICondition[axisCount];
-
-                        int axisSize = Marshal.SizeOf(typeof(DeviceAxisInfo));
-                        for (int i = 0; i < axisCount; i++)
-                        {
-                            IntPtr pCurrent = ptrAxes + i * axisSize;
-                            axes[i] = Marshal.PtrToStructure<DeviceAxisInfo>(pCurrent);
-                            axisDirections[i] = 0;
-                            springConditions[i] = new DICondition();
-                        }
-                    }
-                }
-                else
-                {
-                    activeDevice = null;
+                    SelectDevice(devices[0].guidInstance);
                 }
             }
         }
 
+        public void DisableForceFeedback()
+        {
+            UnityFFBNative.Shutdown();
+        }
+
         private void Start()
         {
-            if(AddFFBEffect(EffectsType.ConstantForce) == 0)
+            if(UnityFFBNative.AddFFBEffect(EffectsType.ConstantForce) == 0)
             {
-                int hresult = UpdateConstantForce(0, axisDirections);
+                int hresult = UnityFFBNative.UpdateConstantForce(0, axisDirections);
                 constantForceEnabled = true;
             }
         }
@@ -130,25 +94,63 @@ namespace UnityFFB
         private void FixedUpdate()
         {
             if (constantForceEnabled) {
-                UpdateConstantForce(force, axisDirections);
+                UnityFFBNative.UpdateConstantForce(force, axisDirections);
+            }
+        }
+
+        public void SelectDevice(string deviceGuid)
+        {
+            // For now just initialize the first FFB Device.
+            if (UnityFFBNative.CreateFFBDevice(deviceGuid) == 0)
+            {
+                activeDevice = devices[0];
+                int axisCount = 0;
+                IntPtr ptrAxes = UnityFFBNative.EnumerateFFBAxes(ref axisCount);
+                if (axisCount > 0)
+                {
+                    axes = new DeviceAxisInfo[axisCount];
+                    axisDirections = new int[axisCount];
+                    springConditions = new DICondition[axisCount];
+
+                    int axisSize = Marshal.SizeOf(typeof(DeviceAxisInfo));
+                    for (int i = 0; i < axisCount; i++)
+                    {
+                        IntPtr pCurrent = ptrAxes + i * axisSize;
+                        axes[i] = Marshal.PtrToStructure<DeviceAxisInfo>(pCurrent);
+                        axisDirections[i] = 0;
+                        springConditions[i] = new DICondition();
+                    }
+                }
+            }
+            else
+            {
+                activeDevice = null;
+            }
+        }
+
+        public void SetConstantForceGain(float gainPercent)
+        {
+            if (constantForceEnabled)
+            {
+                UnityFFBNative.UpdateEffectGain(EffectsType.ConstantForce, gainPercent);
             }
         }
 
         public void StartFFBEffects()
         {
-            StartAllFFBEffects();
+            UnityFFBNative.StartAllFFBEffects();
             constantForceEnabled = true;
         }
 
         public void StopFFBEffects()
         {
-            StopAllFFBEffects();
+            UnityFFBNative.StopAllFFBEffects();
             constantForceEnabled = false;
         }
 
         public void OnApplicationQuit()
         {
-            Shutdown();
+            DisableForceFeedback();
         }
 #endif
     }
