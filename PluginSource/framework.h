@@ -5,8 +5,8 @@
 #include <windows.h>
 #include <vector>
 #include <string>
+#include <map>
 
-#define STRICT
 #define DIRECTINPUT_VERSION 0x0800
 
 #include <dinput.h>

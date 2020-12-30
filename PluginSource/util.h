@@ -10,3 +10,4 @@ struct handle_data {
 HWND FindMainWindow(unsigned long process_id);
 BOOL CALLBACK _cbEnumWindows(HWND handle, LPARAM lParam);
 BOOL IsMainWindow(HWND handle);
+DWORD GuidToDIJOFS(GUID axisType);

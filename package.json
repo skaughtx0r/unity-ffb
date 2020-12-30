@@ -1,0 +1,10 @@
+{
+	"name": "com.unity.unityffb",
+	"version": "0.1.0",
+	"unity": "2018.4",
+	"description": "Direct Input Force Feedback plugin for Unity",
+	"keywords": ["direct", "input", "directinput", "ffb", "force", "feedback", "forcefeedback"],
+	"category": "Input",
+	"dependencies": {
+	}
+}

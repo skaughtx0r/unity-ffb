@@ -35,3 +35,33 @@ BOOL IsMainWindow(HWND handle)
 {
    return GetWindow(handle, GW_OWNER) == (HWND)0 && IsWindowVisible(handle);
 }
+
+DWORD GuidToDIJOFS(GUID axisType)
+{
+   if (axisType == GUID_XAxis)
+   {
+      return DIJOFS_X;
+   }
+   else if (axisType == GUID_YAxis)
+   {
+      return DIJOFS_Y;
+   }
+   else if (axisType == GUID_ZAxis)
+   {
+      return DIJOFS_Z;
+   }
+   else if (axisType == GUID_RxAxis)
+   {
+      return DIJOFS_RX;
+   }
+   else if (axisType == GUID_RyAxis)
+   {
+      return DIJOFS_RY;
+   }
+   else if (axisType == GUID_RzAxis)
+   {
+      return DIJOFS_RZ;
+   }
+
+   return 0;
+}
