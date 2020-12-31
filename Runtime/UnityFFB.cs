@@ -33,7 +33,6 @@ namespace UnityFFB
         public DICondition[] springConditions = new DICondition[0];
 
 #if UNITY_STANDALONE_WIN
-
         void Awake()
         {
             instance = this;
@@ -51,9 +50,11 @@ namespace UnityFFB
                 UnityFFBNative.UpdateConstantForce((int)(force * sensitivity), axisDirections);
             }
         }
+#endif
 
         public void EnableForceFeedback()
         {
+#if UNITY_STANDALONE_WIN
             if (ffbEnabled)
             {
                 return;
@@ -89,10 +90,12 @@ namespace UnityFFB
                     SelectDevice(devices[0].guidInstance);
                 }
             }
+#endif
         }
 
         public void DisableForceFeedback()
         {
+#if UNITY_STANDALONE_WIN
             UnityFFBNative.Shutdown();
             ffbEnabled = false;
             constantForceEnabled = false;
@@ -100,10 +103,12 @@ namespace UnityFFB
             activeDevice = null;
             axes = new DeviceAxisInfo[0];
             springConditions = new DICondition[0];
+#endif
         }
 
         public void SelectDevice(string deviceGuid)
         {
+#if UNITY_STANDALONE_WIN
             // For now just initialize the first FFB Device.
             if (UnityFFBNative.CreateFFBDevice(deviceGuid) == 0)
             {
@@ -136,28 +141,36 @@ namespace UnityFFB
             {
                 activeDevice = null;
             }
+#endif
         }
 
         public void SetConstantForceGain(float gainPercent)
         {
+#if UNITY_STANDALONE_WIN
             if (constantForceEnabled)
             {
                 UnityFFBNative.UpdateEffectGain(EffectsType.ConstantForce, gainPercent);
             }
+#endif
         }
 
         public void StartFFBEffects()
         {
+#if UNITY_STANDALONE_WIN
             UnityFFBNative.StartAllFFBEffects();
             constantForceEnabled = true;
+#endif
         }
 
         public void StopFFBEffects()
         {
+#if UNITY_STANDALONE_WIN
             UnityFFBNative.StopAllFFBEffects();
             constantForceEnabled = false;
+#endif
         }
 
+#if UNITY_STANDALONE_WIN
         public void OnApplicationQuit()
         {
             DisableForceFeedback();
