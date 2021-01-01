@@ -4,13 +4,15 @@ This is a native plugin for Unity3D that interfaces with DirectInput in order
 to send Force Feedback Effects to devices.
 
 The primary goal of this plugin is to get Force Feedback effects working
-with various steering wheels (Logitech, Fanatec, etc).
+with various steering wheels (Logitech, Fanatec, etc) for my hydroplane
+racing sim (http://www.hydrosimracing.com).
 
 #### Current limitations
 
 1. Currently only supports one FFB device at a time.
 2. Only supports Constant Force and Spring Condition.
-3. Should support devices with up to 6 axes.
+3. Should support devices with up to 6 axes. I've only tested devices that
+   support 1 axis though.
 4. Currently only supports 1 Effect of each type per device.
 
 #### Compatible Devices
@@ -19,6 +21,9 @@ Has only been tested with Steering Wheels.
 
 Tested with Fanatec Forza CSR, Fanatec CSL base, and should work with any other
 Fanatec wheel base.
+
+Logitech wheels have been tested by some users. Logitech G29 works, but some
+users have had issues getting G920 to work.
 
 #### Environment
 
