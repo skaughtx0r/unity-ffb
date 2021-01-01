@@ -18,6 +18,8 @@ BOOL CALLBACK _cbEnumFFBAxes(const DIDEVICEOBJECTINSTANCE* pdidoi, void* pContex
 
 void ClearDeviceInstances();
 void ClearDeviceAxes();
+void FreeFFBDevice();
+void FreeDirectInput();
 
 extern "C"
 {
@@ -63,7 +65,7 @@ extern "C"
       } Type;
    };
 
-   UNITYFFB_API HRESULT InitDirectInput();
+   UNITYFFB_API HRESULT StartDirectInput();
    UNITYFFB_API DeviceInfo* EnumerateFFBDevices(int &deviceCount);
    UNITYFFB_API HRESULT CreateFFBDevice(LPCSTR guidInstance);
    UNITYFFB_API DeviceAxisInfo* EnumerateFFBAxes(int &axisCount);
@@ -71,9 +73,8 @@ extern "C"
    UNITYFFB_API HRESULT UpdateEffectGain(Effects::Type effectType, float gainPercent);
    UNITYFFB_API HRESULT UpdateConstantForce(LONG magnitude, LONG* directions);
    UNITYFFB_API HRESULT UpdateSpring(DICONDITION* conditions);
+   UNITYFFB_API HRESULT SetAutoCenter(bool autoCenter);
    UNITYFFB_API void StartAllFFBEffects();
    UNITYFFB_API void StopAllFFBEffects();
-   UNITYFFB_API void FreeFFBDevice();
-   UNITYFFB_API void FreeDirectInput();
-   UNITYFFB_API void Shutdown();
+   UNITYFFB_API void StopDirectInput();
 }

@@ -8,7 +8,7 @@ namespace UnityFFB
 #if UNITY_STANDALONE_WIN
 
         [DllImport("UNITYFFB")]
-        public static extern int InitDirectInput();
+        public static extern int StartDirectInput();
 
         [DllImport("UNITYFFB")]
         public static extern IntPtr EnumerateFFBDevices(ref int deviceCount);
@@ -32,19 +32,16 @@ namespace UnityFFB
         public static extern int UpdateEffectGain(EffectsType effectType, float gainPercent);
 
         [DllImport("UNITYFFB")]
+        public static extern int SetAutoCenter(bool autoCenter);
+
+        [DllImport("UNITYFFB")]
         public static extern void StartAllFFBEffects();
 
         [DllImport("UNITYFFB")]
         public static extern void StopAllFFBEffects();
 
         [DllImport("UNITYFFB")]
-        public static extern void FreeFFBDevice();
-
-        [DllImport("UNITYFFB")]
-        public static extern void FreeDirectInput();
-
-        [DllImport("UNITYFFB")]
-        public static extern void Shutdown();
+        public static extern void StopDirectInput();
 #endif
     }
 }

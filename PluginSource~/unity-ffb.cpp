@@ -12,9 +12,12 @@ std::map<Effects::Type, LPDIRECTINPUTEFFECT> g_mEffects;
 std::map<Effects::Type, DIEFFECT> g_mDIEFFECTs;
 
 /**
- * Get a pointer to the DirectInput 8 interface.
+ * This initializes the DirectInput 8 interface.
+ * 
+ * Once this is initialized, we can then enumerate devices
+ * and select/create a Force Feedback device.
  */
-HRESULT InitDirectInput()
+HRESULT StartDirectInput()
 {
    if (g_pDI != NULL)
    {
@@ -29,6 +32,11 @@ HRESULT InitDirectInput()
    );
 }
 
+/**
+ * Returns an array of DeviceInfo's that has some basic information
+ * about each force feedback device. To create a device, pass its
+ * guidInstance to the CreateDevice function.
+ */
 DeviceInfo* EnumerateFFBDevices(int &deviceCount)
 {
    if (g_pDI == NULL)
@@ -44,7 +52,7 @@ DeviceInfo* EnumerateFFBDevices(int &deviceCount)
    );
    if (g_vDeviceInstances.size() > 0)
    {
-      deviceCount = g_vDeviceInstances.size();
+      deviceCount = (int)g_vDeviceInstances.size();
       return &g_vDeviceInstances[0];
    }
    else {
@@ -87,6 +95,11 @@ BOOL CALLBACK _cbEnumFFBDevices(const DIDEVICEINSTANCE* pInst, void* pContext)
    return DIENUM_CONTINUE;
 }
 
+/**
+ * Create a force feedback device. The guid of the device you want to create must
+ * be passed in. The guid can be obtained by looking at the array of enumerated
+ * devices.
+ */
 HRESULT CreateFFBDevice(LPCSTR guidInstance)
 {
    if (g_pDevice) {
@@ -153,7 +166,7 @@ DeviceAxisInfo* EnumerateFFBAxes(int &axisCount)
 
    if (g_vDeviceAxes.size() > 0)
    {
-      axisCount = g_vDeviceAxes.size();
+      axisCount = (int)g_vDeviceAxes.size();
       return &g_vDeviceAxes[0];
    }
    else {
@@ -221,7 +234,7 @@ HRESULT AddFFBEffect(Effects::Type effectType)
       return E_ABORT;
    }
 
-   int axisCount = g_vDeviceAxes.size();
+   int axisCount = (int)g_vDeviceAxes.size();
    if (axisCount == 0)
    {
       // Must run EnumerateAxes first.
@@ -300,8 +313,13 @@ HRESULT AddFFBEffect(Effects::Type effectType)
    return hr;
 }
 
+/**
+ * Remove a force feedback effect by type.
+ */
 HRESULT RemoveFFBEffect(Effects::Type effectType)
 {
+   HRESULT hr = E_FAIL;
+
    if (g_mEffects.find(effectType) != g_mEffects.end())
    {
       LPDIRECTINPUTEFFECT pEffect = g_mEffects[effectType];
@@ -311,12 +329,15 @@ HRESULT RemoveFFBEffect(Effects::Type effectType)
       g_mEffects.erase(effectType);
       g_mDIEFFECTs.erase(effectType);
 
-      return S_OK;
+      hr = S_OK;
    }
 
-   return E_FAIL;
+   return hr;
 }
 
+/**
+ * This will start all force feedback effects.
+ */
 void StartAllFFBEffects()
 {
    for (auto const& effect : g_mEffects) {
@@ -326,6 +347,9 @@ void StartAllFFBEffects()
    }
 }
 
+/**
+ * This will stop all force feedback effects.
+ */
 void StopAllFFBEffects()
 {
    for (auto const& effect : g_mEffects) {
@@ -343,17 +367,19 @@ void StopAllFFBEffects()
  */
 HRESULT UpdateEffectGain(Effects::Type effectType, float gainPercent)
 {
+   HRESULT hr = E_FAIL;
+
    if (g_mEffects.find(effectType) != g_mEffects.end())
    {
       LPDIRECTINPUTEFFECT pEffect = g_mEffects[effectType];
       DIEFFECT effect = g_mDIEFFECTs[effectType];
       effect.dwSize = sizeof(DIEFFECT);
-      effect.dwGain = clamp(gainPercent, 0.0, 1.0) * DI_FFNOMINALMAX;
+      effect.dwGain = (DWORD)(clamp(gainPercent, 0.0, 1.0) * DI_FFNOMINALMAX);
 
-      return pEffect->SetParameters(&effect, DIEP_GAIN | DIEP_START);
+      hr = pEffect->SetParameters(&effect, DIEP_GAIN | DIEP_START);
    }
 
-   return E_FAIL;
+   return hr;
 }
 
 /**
@@ -365,13 +391,15 @@ HRESULT UpdateEffectGain(Effects::Type effectType, float gainPercent)
  */
 HRESULT UpdateConstantForce(LONG magnitude, LONG* directions)
 {
+   HRESULT hr = E_FAIL;
+
    if (g_mEffects.find(Effects::Type::ConstantForce) != g_mEffects.end())
    {
       LPDIRECTINPUTEFFECT pEffect = g_mEffects[Effects::Type::ConstantForce];
 
       DICONSTANTFORCE constantForce;
 
-      int axisCount = g_vDeviceAxes.size();
+      int axisCount = (int)g_vDeviceAxes.size();
 
       constantForce.lMagnitude = magnitude;
       
@@ -383,11 +411,10 @@ HRESULT UpdateConstantForce(LONG magnitude, LONG* directions)
       effect.cbTypeSpecificParams = sizeof(DICONSTANTFORCE);
       effect.lpvTypeSpecificParams = &constantForce;
 
-      HRESULT hr = pEffect->SetParameters(&effect, DIEP_DIRECTION | DIEP_TYPESPECIFICPARAMS | DIEP_START);
-      return hr;
+      hr = pEffect->SetParameters(&effect, DIEP_DIRECTION | DIEP_TYPESPECIFICPARAMS | DIEP_START);
    }
 
-   return E_FAIL;
+   return hr;
 }
 
 /**
@@ -396,11 +423,13 @@ HRESULT UpdateConstantForce(LONG magnitude, LONG* directions)
  */
 HRESULT UpdateSpring(DICONDITION* conditions)
 {
+   HRESULT hr = E_FAIL;
+
    if (g_mEffects.find(Effects::Type::Spring) != g_mEffects.end())
    {
-      LPDIRECTINPUTEFFECT pEffect = g_mEffects[Effects::Type::ConstantForce];
+      LPDIRECTINPUTEFFECT pEffect = g_mEffects[Effects::Type::Spring];
 
-      int axisCount = g_vDeviceAxes.size();
+      int axisCount = (int)g_vDeviceAxes.size();
 
       DIEFFECT effect = g_mDIEFFECTs[Effects::Type::Spring];
       effect.cAxes = axisCount;
@@ -413,12 +442,37 @@ HRESULT UpdateSpring(DICONDITION* conditions)
          ((DICONDITION*)effect.lpvTypeSpecificParams)[i].dwNegativeSaturation = conditions[i].dwNegativeSaturation;
       }
 
-      HRESULT hr = pEffect->SetParameters(&effect, DIEP_DIRECTION | DIEP_TYPESPECIFICPARAMS | DIEP_START);
-      return hr;
+      hr = pEffect->SetParameters(&effect, DIEP_DIRECTION | DIEP_TYPESPECIFICPARAMS | DIEP_START);
    }
 
+   return hr;
 }
 
+/**
+ * Toggle the auto centering spring for the device.
+ */
+HRESULT SetAutoCenter(bool autoCenter)
+{
+   HRESULT hr = E_FAIL;
+
+   if (g_pDevice != NULL)
+   {
+      DIPROPDWORD dipdw;
+      dipdw.diph.dwSize = sizeof(DIPROPDWORD);
+      dipdw.diph.dwHeaderSize = sizeof(DIPROPHEADER);
+      dipdw.diph.dwObj = 0;
+      dipdw.diph.dwHow = DIPH_DEVICE;
+      dipdw.dwData = autoCenter ? DIPROPAUTOCENTER_ON : DIPROPAUTOCENTER_OFF;
+
+      hr = g_pDevice->SetProperty(DIPROP_AUTOCENTER, &dipdw.diph);
+   }
+
+   return hr;
+}
+
+/**
+ * Clean up the Force Feedback device and any effects.
+ */
 void FreeFFBDevice()
 {     
    for (auto const& effect : g_mEffects) {
@@ -436,7 +490,7 @@ void FreeFFBDevice()
 }
 
 /**
- * Clean-up DirectInput and 
+ * Clean-up DirectInput, device and any effects.
  */
 void FreeDirectInput()
 {
@@ -447,6 +501,9 @@ void FreeDirectInput()
    }
 }
 
+/**
+ * Clear the global vector of enumerated force feedback devices.
+ */
 void ClearDeviceInstances()
 {
    for (int i = 0; i < g_vDeviceInstances.size(); i++)
@@ -459,6 +516,9 @@ void ClearDeviceInstances()
    g_vDeviceInstances.clear();
 }
 
+/**
+ * Clear the global vector of the selected device's axes.
+ */
 void ClearDeviceAxes()
 {
    for (int i = 0; i < g_vDeviceAxes.size(); i++)
@@ -469,7 +529,11 @@ void ClearDeviceAxes()
    g_vDeviceAxes.clear();
 }
 
-void Shutdown()
+/**
+ * This will stop the DirectInput Force Feedback and
+ * clean up all memory and references to devices and effects.
+ */
+void StopDirectInput()
 {
    FreeDirectInput();
    ClearDeviceAxes();

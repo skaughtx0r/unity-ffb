@@ -16,6 +16,18 @@ namespace UnityFFB
         /// Whether or not to automatically select the first FFB device on start.
         /// </summary>
         public bool autoSelectFirstDevice = true;
+        /// <summary>
+        /// Whether or not to automatically disable auto-centering on the device.
+        /// </summary>
+        public bool disableAutoCenter = true;
+        /// <summary>
+        /// Whether or not to automatically add a constant force effect to the device.
+        /// </summary>
+        public bool addConstantForce = true;
+        /// <summary>
+        /// Whether or not to automatically add a spring force to the device.
+        /// </summary>
+        public bool addSpringForce = false;
 
         // Constant force properties
         public int force = 0;
@@ -24,6 +36,7 @@ namespace UnityFFB
 
         public bool ffbEnabled { get; private set; }
         public bool constantForceEnabled { get; private set; }
+        public bool springForceEnabled { get; private set; }
 
         public DeviceInfo[] devices = new DeviceInfo[0];
 
@@ -60,7 +73,7 @@ namespace UnityFFB
                 return;
             }
 
-            if (UnityFFBNative.InitDirectInput() >= 0)
+            if (UnityFFBNative.StartDirectInput() >= 0)
             {
                 ffbEnabled = true;
             }
@@ -96,7 +109,7 @@ namespace UnityFFB
         public void DisableForceFeedback()
         {
 #if UNITY_STANDALONE_WIN
-            UnityFFBNative.Shutdown();
+            UnityFFBNative.StopDirectInput();
             ffbEnabled = false;
             constantForceEnabled = false;
             devices = new DeviceInfo[0];
@@ -113,6 +126,12 @@ namespace UnityFFB
             if (UnityFFBNative.CreateFFBDevice(deviceGuid) == 0)
             {
                 activeDevice = devices[0];
+
+                if (disableAutoCenter)
+                {
+                    UnityFFBNative.SetAutoCenter(false);
+                }
+
                 int axisCount = 0;
                 IntPtr ptrAxes = UnityFFBNative.EnumerateFFBAxes(ref axisCount);
                 if (axisCount > 0)
@@ -130,10 +149,30 @@ namespace UnityFFB
                         springConditions[i] = new DICondition();
                     }
 
-                    if (UnityFFBNative.AddFFBEffect(EffectsType.ConstantForce) == 0)
+                    if (addConstantForce)
                     {
-                        int hresult = UnityFFBNative.UpdateConstantForce(0, axisDirections);
-                        constantForceEnabled = true;
+                        if (UnityFFBNative.AddFFBEffect(EffectsType.ConstantForce) == 0)
+                        {
+                            int hresult = UnityFFBNative.UpdateConstantForce(0, axisDirections);
+                            constantForceEnabled = true;
+                        }
+                    }
+
+                    if (addSpringForce)
+                    {
+                        if (UnityFFBNative.AddFFBEffect(EffectsType.Spring) == 0)
+                        {
+                            for (int i = 0; i < springConditions.Length; i++)
+                            {
+                                springConditions[i].deadband = 0;
+                                springConditions[i].offset = 0;
+                                springConditions[i].negativeCoefficient = 10000;
+                                springConditions[i].positiveCoefficient = 10000;
+                                springConditions[i].negativeSaturation = 10000;
+                                springConditions[i].positiveCoefficient = 10000;
+                            }
+                            UnityFFBNative.UpdateSpring(springConditions);
+                        }
                     }
                 }
             }
