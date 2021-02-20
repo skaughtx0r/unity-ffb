@@ -166,14 +166,26 @@ namespace UnityFFB
                             {
                                 springConditions[i].deadband = 0;
                                 springConditions[i].offset = 0;
-                                springConditions[i].negativeCoefficient = 10000;
-                                springConditions[i].positiveCoefficient = 10000;
+                                springConditions[i].negativeCoefficient = 2000;
+                                springConditions[i].positiveCoefficient = 2000;
                                 springConditions[i].negativeSaturation = 10000;
-                                springConditions[i].positiveCoefficient = 10000;
+                                springConditions[i].positiveSaturation = 10000;
                             }
                             UnityFFBNative.UpdateSpring(springConditions);
                         }
                     }
+                }
+                Debug.Log($"FFB Device count: {devices.Length}");
+                foreach (DeviceInfo device in devices)
+                {
+                    string ffbAxis = UnityEngine.JsonUtility.ToJson(device, true);
+                    Debug.Log(ffbAxis);
+                }
+                Debug.Log($"FFB Axis count: {axes.Length}");
+                foreach (DeviceAxisInfo axis in axes)
+                {
+                    string ffbAxis = UnityEngine.JsonUtility.ToJson(axis, true);
+                    Debug.Log(ffbAxis);
                 }
             }
             else

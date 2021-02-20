@@ -20,6 +20,7 @@ namespace UnityFFB
         CustomForce = 11
     }
 
+    [Serializable]
     [StructLayout(LayoutKind.Sequential)]
     public struct DeviceInfo
     {
@@ -34,6 +35,7 @@ namespace UnityFFB
         public string productName;
     }
 
+    [Serializable]
     [StructLayout(LayoutKind.Sequential)]
     public struct DeviceAxisInfo
     {
