@@ -86,9 +86,9 @@ namespace UnityFFB
 
             IntPtr ptrDevices = UnityFFBNative.EnumerateFFBDevices(ref deviceCount);
 
+            Debug.Log($"FFB Device count: {devices.Length}");
             if (deviceCount > 0)
             {
-
                 devices = new DeviceInfo[deviceCount];
 
                 int deviceSize = Marshal.SizeOf(typeof(DeviceInfo));
@@ -96,6 +96,12 @@ namespace UnityFFB
                 {
                     IntPtr pCurrent = ptrDevices + i * deviceSize;
                     devices[i] = Marshal.PtrToStructure<DeviceInfo>(pCurrent);
+                }
+
+                foreach (DeviceInfo device in devices)
+                {
+                    string ffbAxis = UnityEngine.JsonUtility.ToJson(device, true);
+                    Debug.Log(ffbAxis);
                 }
 
                 if (autoSelectFirstDevice)
@@ -174,12 +180,6 @@ namespace UnityFFB
                             UnityFFBNative.UpdateSpring(springConditions);
                         }
                     }
-                }
-                Debug.Log($"FFB Device count: {devices.Length}");
-                foreach (DeviceInfo device in devices)
-                {
-                    string ffbAxis = UnityEngine.JsonUtility.ToJson(device, true);
-                    Debug.Log(ffbAxis);
                 }
                 Debug.Log($"FFB Axis count: {axes.Length}");
                 foreach (DeviceAxisInfo axis in axes)
