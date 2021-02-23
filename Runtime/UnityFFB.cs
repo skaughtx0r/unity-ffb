@@ -86,7 +86,7 @@ namespace UnityFFB
 
             IntPtr ptrDevices = UnityFFBNative.EnumerateFFBDevices(ref deviceCount);
 
-            Debug.Log($"FFB Device count: {devices.Length}");
+            Debug.Log($"[UnityFFB] Device count: {devices.Length}");
             if (deviceCount > 0)
             {
                 devices = new DeviceInfo[deviceCount];
@@ -129,13 +129,18 @@ namespace UnityFFB
         {
 #if UNITY_STANDALONE_WIN
             // For now just initialize the first FFB Device.
-            if (UnityFFBNative.CreateFFBDevice(deviceGuid) == 0)
+            int hresult = UnityFFBNative.CreateFFBDevice(deviceGuid);
+            if (hresult == 0)
             {
                 activeDevice = devices[0];
 
                 if (disableAutoCenter)
                 {
-                    UnityFFBNative.SetAutoCenter(false);
+                    hresult = UnityFFBNative.SetAutoCenter(false);
+                    if (hresult != 0)
+                    {
+                        Debug.LogError($"[UnityFFB] SetAutoCenter Failed: {WinErrors.GetSystemMessage(hresult)}");
+                    }
                 }
 
                 int axisCount = 0;
@@ -157,16 +162,26 @@ namespace UnityFFB
 
                     if (addConstantForce)
                     {
+                        hresult = UnityFFBNative.AddFFBEffect(EffectsType.ConstantForce);
                         if (UnityFFBNative.AddFFBEffect(EffectsType.ConstantForce) == 0)
                         {
-                            int hresult = UnityFFBNative.UpdateConstantForce(0, axisDirections);
+                            hresult = UnityFFBNative.UpdateConstantForce(0, axisDirections);
+                            if (hresult != 0)
+                            {
+                                Debug.LogError($"[UnityFFB] UpdateConstantForce Failed: {WinErrors.GetSystemMessage(hresult)}");
+                            }
                             constantForceEnabled = true;
+                        }
+                        else
+                        {
+                            Debug.LogError($"[UnityFFB] AddConstantForce Failed: {WinErrors.GetSystemMessage(hresult)}");
                         }
                     }
 
                     if (addSpringForce)
                     {
-                        if (UnityFFBNative.AddFFBEffect(EffectsType.Spring) == 0)
+                        hresult = UnityFFBNative.AddFFBEffect(EffectsType.Spring);
+                        if (hresult == 0)
                         {
                             for (int i = 0; i < springConditions.Length; i++)
                             {
@@ -177,11 +192,16 @@ namespace UnityFFB
                                 springConditions[i].negativeSaturation = 10000;
                                 springConditions[i].positiveSaturation = 10000;
                             }
-                            UnityFFBNative.UpdateSpring(springConditions);
+                            hresult = UnityFFBNative.UpdateSpring(springConditions);
+                            Debug.LogError($"[UnityFFB] UpdateSpringForce Failed: {WinErrors.GetSystemMessage(hresult)}");
+                        }
+                        else
+                        {
+                            Debug.LogError($"[UnityFFB] AddSpringForce Failed: {WinErrors.GetSystemMessage(hresult)}");
                         }
                     }
                 }
-                Debug.Log($"FFB Axis count: {axes.Length}");
+                Debug.Log($"[UnityFFB] Axis count: {axes.Length}");
                 foreach (DeviceAxisInfo axis in axes)
                 {
                     string ffbAxis = UnityEngine.JsonUtility.ToJson(axis, true);
@@ -191,6 +211,7 @@ namespace UnityFFB
             else
             {
                 activeDevice = null;
+                Debug.LogError($"[UnityFFB] {WinErrors.GetSystemMessage(hresult)}");
             }
 #endif
         }
@@ -200,7 +221,8 @@ namespace UnityFFB
 #if UNITY_STANDALONE_WIN
             if (constantForceEnabled)
             {
-                UnityFFBNative.UpdateEffectGain(EffectsType.ConstantForce, gainPercent);
+                int hresult = UnityFFBNative.UpdateEffectGain(EffectsType.ConstantForce, gainPercent);
+                Debug.LogError($"[UnityFFB] UpdateEffectGain Failed: {WinErrors.GetSystemMessage(hresult)}");
             }
 #endif
         }
