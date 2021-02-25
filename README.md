@@ -22,8 +22,7 @@ Has only been tested with Steering Wheels.
 Tested with Fanatec Forza CSR, Fanatec CSL base, and should work with any other
 Fanatec wheel base.
 
-Logitech wheels have been tested by some users. Logitech G29 works, but some
-users have had issues getting G920 to work.
+Logitech G29 and G920 are tested and working.
 
 #### Environment
 

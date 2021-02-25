@@ -139,7 +139,7 @@ namespace UnityFFB
                     hresult = UnityFFBNative.SetAutoCenter(false);
                     if (hresult != 0)
                     {
-                        Debug.LogError($"[UnityFFB] SetAutoCenter Failed: {WinErrors.GetSystemMessage(hresult)}");
+                        Debug.LogError($"[UnityFFB] SetAutoCenter Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");
                     }
                 }
 
@@ -163,18 +163,18 @@ namespace UnityFFB
                     if (addConstantForce)
                     {
                         hresult = UnityFFBNative.AddFFBEffect(EffectsType.ConstantForce);
-                        if (UnityFFBNative.AddFFBEffect(EffectsType.ConstantForce) == 0)
+                        if (hresult == 0)
                         {
                             hresult = UnityFFBNative.UpdateConstantForce(0, axisDirections);
                             if (hresult != 0)
                             {
-                                Debug.LogError($"[UnityFFB] UpdateConstantForce Failed: {WinErrors.GetSystemMessage(hresult)}");
+                                Debug.LogError($"[UnityFFB] UpdateConstantForce Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");
                             }
                             constantForceEnabled = true;
                         }
                         else
                         {
-                            Debug.LogError($"[UnityFFB] AddConstantForce Failed: {WinErrors.GetSystemMessage(hresult)}");
+                            Debug.LogError($"[UnityFFB] AddConstantForce Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");
                         }
                     }
 
@@ -193,11 +193,11 @@ namespace UnityFFB
                                 springConditions[i].positiveSaturation = 10000;
                             }
                             hresult = UnityFFBNative.UpdateSpring(springConditions);
-                            Debug.LogError($"[UnityFFB] UpdateSpringForce Failed: {WinErrors.GetSystemMessage(hresult)}");
+                            Debug.LogError($"[UnityFFB] UpdateSpringForce Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");
                         }
                         else
                         {
-                            Debug.LogError($"[UnityFFB] AddSpringForce Failed: {WinErrors.GetSystemMessage(hresult)}");
+                            Debug.LogError($"[UnityFFB] AddSpringForce Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");
                         }
                     }
                 }
@@ -211,7 +211,7 @@ namespace UnityFFB
             else
             {
                 activeDevice = null;
-                Debug.LogError($"[UnityFFB] {WinErrors.GetSystemMessage(hresult)}");
+                Debug.LogError($"[UnityFFB] 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");
             }
 #endif
         }
@@ -222,7 +222,7 @@ namespace UnityFFB
             if (constantForceEnabled)
             {
                 int hresult = UnityFFBNative.UpdateEffectGain(EffectsType.ConstantForce, gainPercent);
-                Debug.LogError($"[UnityFFB] UpdateEffectGain Failed: {WinErrors.GetSystemMessage(hresult)}");
+                Debug.LogError($"[UnityFFB] UpdateEffectGain Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");
             }
 #endif
         }

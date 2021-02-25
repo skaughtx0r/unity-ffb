@@ -280,16 +280,19 @@ HRESULT AddFFBEffect(Effects::Type effectType)
    GUID guidType = {};
    ZeroMemory(&guidType, sizeof(GUID));
 
+   DICONSTANTFORCE* constantForce = NULL;
+   DICONDITION* conditions = NULL;
    if (effectType == Effects::Type::ConstantForce)
    {
-      DICONSTANTFORCE constantForce = { 0 };
+      constantForce = new DICONSTANTFORCE();
+      constantForce->lMagnitude = 0;
       effect.cbTypeSpecificParams = sizeof(DICONSTANTFORCE);
-      effect.lpvTypeSpecificParams = &constantForce;
+      effect.lpvTypeSpecificParams = constantForce;
       guidType = GUID_ConstantForce;
    }
    else if (effectType == Effects::Type::Spring)
    {
-      DICONDITION* conditions = new DICONDITION[axisCount];
+      conditions = new DICONDITION[axisCount];
       ZeroMemory(conditions, sizeof(DICONDITION) * axisCount);
       effect.cbTypeSpecificParams = sizeof(DICONDITION) * axisCount;
       effect.lpvTypeSpecificParams = conditions;
