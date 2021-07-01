@@ -45,17 +45,19 @@ namespace UnityFFB
         public DeviceAxisInfo[] axes = new DeviceAxisInfo[0];
         public DICondition[] springConditions = new DICondition[0];
 
-#if UNITY_STANDALONE_WIN
+
         void Awake()
         {
             instance = this;
-
+#if UNITY_STANDALONE_WIN
             if (enableOnAwake)
             {
                 EnableForceFeedback();
             }
+#endif
         }
 
+#if UNITY_STANDALONE_WIN
         private void FixedUpdate()
         {
             if (constantForceEnabled)
