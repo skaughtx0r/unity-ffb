@@ -45,6 +45,7 @@ namespace UnityFFB
         public DeviceAxisInfo[] axes = new DeviceAxisInfo[0];
         public DICondition[] springConditions = new DICondition[0];
 
+        protected bool nativeLibLoadFailed = false;
 
         void Awake()
         {
@@ -60,6 +61,7 @@ namespace UnityFFB
 #if UNITY_STANDALONE_WIN
         private void FixedUpdate()
         {
+            if (nativeLibLoadFailed) { return; }
             if (constantForceEnabled)
             {
                 UnityFFBNative.UpdateConstantForce((int)(force * sensitivity), axisDirections);
@@ -70,46 +72,53 @@ namespace UnityFFB
         public void EnableForceFeedback()
         {
 #if UNITY_STANDALONE_WIN
-            if (ffbEnabled)
+            if (nativeLibLoadFailed ||  ffbEnabled)
             {
                 return;
             }
 
-            if (UnityFFBNative.StartDirectInput() >= 0)
+            try
             {
-                ffbEnabled = true;
+                if (UnityFFBNative.StartDirectInput() >= 0)
+                {
+                    ffbEnabled = true;
+                }
+                else
+                {
+                    ffbEnabled = false;
+                }
+
+                int deviceCount = 0;
+
+                IntPtr ptrDevices = UnityFFBNative.EnumerateFFBDevices(ref deviceCount);
+
+                Debug.Log($"[UnityFFB] Device count: {devices.Length}");
+                if (deviceCount > 0)
+                {
+                    devices = new DeviceInfo[deviceCount];
+
+                    int deviceSize = Marshal.SizeOf(typeof(DeviceInfo));
+                    for (int i = 0; i < deviceCount; i++)
+                    {
+                        IntPtr pCurrent = ptrDevices + i * deviceSize;
+                        devices[i] = Marshal.PtrToStructure<DeviceInfo>(pCurrent);
+                    }
+
+                    foreach (DeviceInfo device in devices)
+                    {
+                        string ffbAxis = UnityEngine.JsonUtility.ToJson(device, true);
+                        Debug.Log(ffbAxis);
+                    }
+
+                    if (autoSelectFirstDevice)
+                    {
+                        SelectDevice(devices[0].guidInstance);
+                    }
+                }
             }
-            else
+            catch (DllNotFoundException e)
             {
-                ffbEnabled = false;
-            }
-
-            int deviceCount = 0;
-
-            IntPtr ptrDevices = UnityFFBNative.EnumerateFFBDevices(ref deviceCount);
-
-            Debug.Log($"[UnityFFB] Device count: {devices.Length}");
-            if (deviceCount > 0)
-            {
-                devices = new DeviceInfo[deviceCount];
-
-                int deviceSize = Marshal.SizeOf(typeof(DeviceInfo));
-                for (int i = 0; i < deviceCount; i++)
-                {
-                    IntPtr pCurrent = ptrDevices + i * deviceSize;
-                    devices[i] = Marshal.PtrToStructure<DeviceInfo>(pCurrent);
-                }
-
-                foreach (DeviceInfo device in devices)
-                {
-                    string ffbAxis = UnityEngine.JsonUtility.ToJson(device, true);
-                    Debug.Log(ffbAxis);
-                }
-
-                if (autoSelectFirstDevice)
-                {
-                    SelectDevice(devices[0].guidInstance);
-                }
+                LogMissingRuntimeError();
             }
 #endif
         }
@@ -117,7 +126,15 @@ namespace UnityFFB
         public void DisableForceFeedback()
         {
 #if UNITY_STANDALONE_WIN
-            UnityFFBNative.StopDirectInput();
+            if (nativeLibLoadFailed) { return; }
+            try
+            {
+                UnityFFBNative.StopDirectInput();
+            }
+            catch (DllNotFoundException e)
+            {
+                LogMissingRuntimeError();
+            }
             ffbEnabled = false;
             constantForceEnabled = false;
             devices = new DeviceInfo[0];
@@ -130,90 +147,98 @@ namespace UnityFFB
         public void SelectDevice(string deviceGuid)
         {
 #if UNITY_STANDALONE_WIN
-            // For now just initialize the first FFB Device.
-            int hresult = UnityFFBNative.CreateFFBDevice(deviceGuid);
-            if (hresult == 0)
+            if (nativeLibLoadFailed) { return; }
+            try
             {
-                activeDevice = devices[0];
-
-                if (disableAutoCenter)
+                // For now just initialize the first FFB Device.
+                int hresult = UnityFFBNative.CreateFFBDevice(deviceGuid);
+                if (hresult == 0)
                 {
-                    hresult = UnityFFBNative.SetAutoCenter(false);
-                    if (hresult != 0)
+                    activeDevice = devices[0];
+
+                    if (disableAutoCenter)
                     {
-                        Debug.LogError($"[UnityFFB] SetAutoCenter Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");
+                        hresult = UnityFFBNative.SetAutoCenter(false);
+                        if (hresult != 0)
+                        {
+                            Debug.LogError($"[UnityFFB] SetAutoCenter Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");
+                        }
+                    }
+
+                    int axisCount = 0;
+                    IntPtr ptrAxes = UnityFFBNative.EnumerateFFBAxes(ref axisCount);
+                    if (axisCount > 0)
+                    {
+                        axes = new DeviceAxisInfo[axisCount];
+                        axisDirections = new int[axisCount];
+                        springConditions = new DICondition[axisCount];
+
+                        int axisSize = Marshal.SizeOf(typeof(DeviceAxisInfo));
+                        for (int i = 0; i < axisCount; i++)
+                        {
+                            IntPtr pCurrent = ptrAxes + i * axisSize;
+                            axes[i] = Marshal.PtrToStructure<DeviceAxisInfo>(pCurrent);
+                            axisDirections[i] = 0;
+                            springConditions[i] = new DICondition();
+                        }
+
+                        if (addConstantForce)
+                        {
+                            hresult = UnityFFBNative.AddFFBEffect(EffectsType.ConstantForce);
+                            if (hresult == 0)
+                            {
+                                hresult = UnityFFBNative.UpdateConstantForce(0, axisDirections);
+                                if (hresult != 0)
+                                {
+                                    Debug.LogError($"[UnityFFB] UpdateConstantForce Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");
+                                }
+                                constantForceEnabled = true;
+                            }
+                            else
+                            {
+                                Debug.LogError($"[UnityFFB] AddConstantForce Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");
+                            }
+                        }
+
+                        if (addSpringForce)
+                        {
+                            hresult = UnityFFBNative.AddFFBEffect(EffectsType.Spring);
+                            if (hresult == 0)
+                            {
+                                for (int i = 0; i < springConditions.Length; i++)
+                                {
+                                    springConditions[i].deadband = 0;
+                                    springConditions[i].offset = 0;
+                                    springConditions[i].negativeCoefficient = 2000;
+                                    springConditions[i].positiveCoefficient = 2000;
+                                    springConditions[i].negativeSaturation = 10000;
+                                    springConditions[i].positiveSaturation = 10000;
+                                }
+                                hresult = UnityFFBNative.UpdateSpring(springConditions);
+                                Debug.LogError($"[UnityFFB] UpdateSpringForce Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");
+                            }
+                            else
+                            {
+                                Debug.LogError($"[UnityFFB] AddSpringForce Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");
+                            }
+                        }
+                    }
+                    Debug.Log($"[UnityFFB] Axis count: {axes.Length}");
+                    foreach (DeviceAxisInfo axis in axes)
+                    {
+                        string ffbAxis = UnityEngine.JsonUtility.ToJson(axis, true);
+                        Debug.Log(ffbAxis);
                     }
                 }
-
-                int axisCount = 0;
-                IntPtr ptrAxes = UnityFFBNative.EnumerateFFBAxes(ref axisCount);
-                if (axisCount > 0)
+                else
                 {
-                    axes = new DeviceAxisInfo[axisCount];
-                    axisDirections = new int[axisCount];
-                    springConditions = new DICondition[axisCount];
-
-                    int axisSize = Marshal.SizeOf(typeof(DeviceAxisInfo));
-                    for (int i = 0; i < axisCount; i++)
-                    {
-                        IntPtr pCurrent = ptrAxes + i * axisSize;
-                        axes[i] = Marshal.PtrToStructure<DeviceAxisInfo>(pCurrent);
-                        axisDirections[i] = 0;
-                        springConditions[i] = new DICondition();
-                    }
-
-                    if (addConstantForce)
-                    {
-                        hresult = UnityFFBNative.AddFFBEffect(EffectsType.ConstantForce);
-                        if (hresult == 0)
-                        {
-                            hresult = UnityFFBNative.UpdateConstantForce(0, axisDirections);
-                            if (hresult != 0)
-                            {
-                                Debug.LogError($"[UnityFFB] UpdateConstantForce Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");
-                            }
-                            constantForceEnabled = true;
-                        }
-                        else
-                        {
-                            Debug.LogError($"[UnityFFB] AddConstantForce Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");
-                        }
-                    }
-
-                    if (addSpringForce)
-                    {
-                        hresult = UnityFFBNative.AddFFBEffect(EffectsType.Spring);
-                        if (hresult == 0)
-                        {
-                            for (int i = 0; i < springConditions.Length; i++)
-                            {
-                                springConditions[i].deadband = 0;
-                                springConditions[i].offset = 0;
-                                springConditions[i].negativeCoefficient = 2000;
-                                springConditions[i].positiveCoefficient = 2000;
-                                springConditions[i].negativeSaturation = 10000;
-                                springConditions[i].positiveSaturation = 10000;
-                            }
-                            hresult = UnityFFBNative.UpdateSpring(springConditions);
-                            Debug.LogError($"[UnityFFB] UpdateSpringForce Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");
-                        }
-                        else
-                        {
-                            Debug.LogError($"[UnityFFB] AddSpringForce Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");
-                        }
-                    }
-                }
-                Debug.Log($"[UnityFFB] Axis count: {axes.Length}");
-                foreach (DeviceAxisInfo axis in axes)
-                {
-                    string ffbAxis = UnityEngine.JsonUtility.ToJson(axis, true);
-                    Debug.Log(ffbAxis);
+                    activeDevice = null;
+                    Debug.LogError($"[UnityFFB] 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");
                 }
             }
-            else
+            catch (DllNotFoundException e)
             {
-                activeDevice = null;
-                Debug.LogError($"[UnityFFB] 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");
+                LogMissingRuntimeError();
             }
 #endif
         }
@@ -221,6 +246,7 @@ namespace UnityFFB
         public void SetConstantForceGain(float gainPercent)
         {
 #if UNITY_STANDALONE_WIN
+            if (nativeLibLoadFailed) { return; }
             if (constantForceEnabled)
             {
                 int hresult = UnityFFBNative.UpdateEffectGain(EffectsType.ConstantForce, gainPercent);
@@ -232,17 +258,43 @@ namespace UnityFFB
         public void StartFFBEffects()
         {
 #if UNITY_STANDALONE_WIN
-            UnityFFBNative.StartAllFFBEffects();
-            constantForceEnabled = true;
+            if (nativeLibLoadFailed) { return; }
+            try
+            {
+                UnityFFBNative.StartAllFFBEffects();
+                constantForceEnabled = true;
+            }
+            catch (DllNotFoundException e)
+            {
+                LogMissingRuntimeError();
+            }
 #endif
         }
 
         public void StopFFBEffects()
         {
 #if UNITY_STANDALONE_WIN
-            UnityFFBNative.StopAllFFBEffects();
-            constantForceEnabled = false;
+            if (nativeLibLoadFailed) { return; }
+            try
+            {
+                UnityFFBNative.StopAllFFBEffects();
+                constantForceEnabled = false;
+            }
+            catch (DllNotFoundException e)
+            {
+                LogMissingRuntimeError();
+            }
 #endif
+        }
+
+        void LogMissingRuntimeError()
+        {
+            Debug.LogError(
+                "Unable to load Force Feedback plugin. Ensure that the following are installed:\n\n" +
+                "DirectX End-User Runtime: https://www.microsoft.com/en-us/download/details.aspx?id=35\n" +
+                "Visual C++ Redistributable: https://aka.ms/vs/17/release/vc_redist.x64.exe"
+            );
+            nativeLibLoadFailed = true;
         }
 
 #if UNITY_STANDALONE_WIN
