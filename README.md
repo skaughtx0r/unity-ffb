@@ -47,3 +47,9 @@ For Unity 2018.4, you'll need to manually add the git repo to your manifest.json
 For Unity 2019 and greater, you can add git packages via the Package Manager
 GUI. Just click the `+` and "Add package from git url...", then paste the URL:
 `https://github.com/skaughtx0r/unity-ffb.git`
+
+#### References
+
+FFConst: https://github.com/walbourn/directx-sdk-samples/blob/main/DirectInput/FFConst/ffconst.cpp
+Vectrex / p_025 : https://forum.unity.com/threads/force-feedback-for-windows.78268/
+MrTimcakes fork: https://github.com/MrTimcakes/Unity-DirectInputFFB
