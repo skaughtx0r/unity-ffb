@@ -170,12 +170,15 @@
     <None Include="cpp.hint" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="common.h" />
+    <ClInclude Include="di-device.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="util.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="unity-ffb.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="di-device.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
