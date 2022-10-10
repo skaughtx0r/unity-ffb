@@ -2,7 +2,7 @@
 using System.Runtime.InteropServices;
 using UnityEngine;
 
-namespace DirectInputFFB {
+namespace UnityFFB {
     public enum EffectsType {
         ConstantForce = 0,
         RampForce = 1,

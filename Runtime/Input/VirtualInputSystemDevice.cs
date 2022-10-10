@@ -272,8 +272,8 @@ public class DirectInputDevice : InputDevice, IInputUpdateCallbackReceiver{
 
     [RuntimeInitializeOnLoadMethod]
     private static void Initialize(){
-        DirectInputFFB.FFBManager.Initialize(); // Initialize FFBManager incase it's not already
-        DirectInputFFB.FFBManager.OnDeviceStateChange += OnDeviceStateChange; // Register listner
+        UnityFFB.FFBManager.Initialize(); // Initialize FFBManager incase it's not already
+        UnityFFB.FFBManager.OnDeviceStateChange += OnDeviceStateChange; // Register listner
         InputSystem.RegisterLayout<DirectInputDevice>(
             matches: new InputDeviceMatcher()
                 .WithInterface("DirectX DirectInput"));
@@ -297,7 +297,7 @@ public class DirectInputDevice : InputDevice, IInputUpdateCallbackReceiver{
 
 
     #if UNITY_EDITOR
-    [MenuItem("DirectInputFFB/Create Virtual Input Device")]
+    [MenuItem("UnityFFB/Create Virtual Input Device")]
     private static void CreateDevice(){
         InputSystem.AddDevice(new InputDeviceDescription{
             interfaceName = "DirectX DirectInput",
@@ -305,7 +305,7 @@ public class DirectInputDevice : InputDevice, IInputUpdateCallbackReceiver{
         });
     }
 
-    [MenuItem("DirectInputFFB/Destroy Virtual Input Device")]
+    [MenuItem("UnityFFB/Destroy Virtual Input Device")]
     private static void RemoveDevice(){
         var DirectInputDevice = InputSystem.devices.FirstOrDefault(x => x is DirectInputDevice);
         if (DirectInputDevice != null)
@@ -315,11 +315,11 @@ public class DirectInputDevice : InputDevice, IInputUpdateCallbackReceiver{
     #endif
 
     public void OnUpdate(){
-        DirectInputFFB.FFBManager.PollDevice(); // Poll the DirectInput Device
+        UnityFFB.FFBManager.PollDevice(); // Poll the DirectInput Device
     }
 
     public static void OnDeviceStateChange(object sender, EventArgs args){
-        DIJOYSTATE2State state = DirectInputFFB.Utilities.UnFlatJoyState2(DirectInputFFB.FFBManager.state);
+        DIJOYSTATE2State state = UnityFFB.Utilities.UnFlatJoyState2(UnityFFB.FFBManager.state);
         // Check if DirectInputDevice is enabled
         if( InputSystem.devices.FirstOrDefault(x => x is DirectInputDevice) != null){
             InputSystem.QueueStateEvent( DirectInputDevice.current , state); // Only bubble Input System Event if input has changed

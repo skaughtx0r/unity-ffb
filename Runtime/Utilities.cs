@@ -2,7 +2,7 @@
 using System.Runtime.InteropServices;
 using System.Linq;
 
-namespace DirectInputFFB {
+namespace UnityFFB {
 
     public static class Utilities{
         public static FlatJoyState2 FlattenDIJOYSTATE2(DIJOYSTATE2 DeviceState){

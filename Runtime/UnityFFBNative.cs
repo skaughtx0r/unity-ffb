@@ -3,11 +3,11 @@ using System.Runtime.InteropServices;
 using UnityEngine;
 using System.Linq;
 
-namespace DirectInputFFB {
+namespace UnityFFB {
     public class Native {
         
         #if UNITY_STANDALONE_WIN
-        private const string FFBDLL = "UnityDirectInputFFB";
+        private const string FFBDLL = "UnityFFB";
         [DllImport(FFBDLL)] public static extern int    StartDirectInput();
         [DllImport(FFBDLL)] public static extern IntPtr EnumerateFFBDevices(ref int deviceCount);
         [DllImport(FFBDLL)] public static extern IntPtr EnumerateFFBAxes(ref int axisCount);
@@ -42,7 +42,7 @@ namespace DirectInputFFB {
         private static bool _isInitialized = false;
         public static bool isInitialized { 
             get => _isInitialized; // { return _isInitialized; }
-            set{ Debug.Log("[DirectInputFFB]Can't set isInitialized!"); }
+            set{ Debug.Log("[UnityFFB]Can't set isInitialized!"); }
         }
         private static bool _ConstantForceEnabled = false;
         private static bool _SpringForceEnabled   = false;
@@ -67,15 +67,15 @@ namespace DirectInputFFB {
 
         public static DeviceInfo[] devices { 
             get => _devices;
-            set{ Debug.Log("[DirectInputFFB]Can't set devices!"); }
+            set{ Debug.Log("[UnityFFB]Can't set devices!"); }
         }
         public static FlatJoyState2 state {
             get => _activeDeviceState;
-            set{ Debug.Log("[DirectInputFFB]Can't set activeDeviceState!"); }
+            set{ Debug.Log("[UnityFFB]Can't set activeDeviceState!"); }
         }
         public static int axesCount{
             get => _axesCount; // No Need to match device GUID and return in devices array
-            set{ Debug.Log("[DirectInputFFB]Can't set axesCount!"); }
+            set{ Debug.Log("[UnityFFB]Can't set axesCount!"); }
         }
 
         public static event EventHandler OnDeviceStateChange = delegate {}; // Handle for events when the device input has changed, e.g. Axis moved or button pressed
@@ -96,7 +96,7 @@ namespace DirectInputFFB {
             EnumerateDirectInputDevices();
             SelectDevice(_devices[0]); // Select to first device
 
-            Debug.Log($"[DirectInputFFB] Initialized! {_devices.Count()} Devices");
+            Debug.Log($"[UnityFFB] Initialized! {_devices.Count()} Devices");
             return _isInitialized;
         #endif
         }
@@ -104,7 +104,7 @@ namespace DirectInputFFB {
         private static void EnumerateDirectInputDevices(){
             int deviceCount = 0;
             IntPtr ptrDevices = Native.EnumerateFFBDevices(ref deviceCount);
-            // Debug.Log($"[DirectInputFFBz] Device count: {deviceCount}");
+            // Debug.Log($"[UnityFFBz] Device count: {deviceCount}");
             if (deviceCount > 0) {
                 _devices = new DeviceInfo[deviceCount];
 
@@ -146,7 +146,7 @@ namespace DirectInputFFB {
             if(_activeDevice != null){ _activeDevice = null; } // Unacquire
 
             int hresult = Native.CreateFFBDevice(Device.guidInstance);
-            if (hresult != 0) { Debug.LogError($"[DirectInputFFB] CreateFFBDevice Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}"); return false; }
+            if (hresult != 0) { Debug.LogError($"[UnityFFB] CreateFFBDevice Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}"); return false; }
 
             IntPtr ptrAxes = Native.EnumerateFFBAxes(ref _axesCount); // Returns the first axis and _axesCount is how many axis the device has
             if (_axesCount > 0) {
@@ -167,7 +167,7 @@ namespace DirectInputFFB {
 
             _activeDevice = Device;
             return true;
-            // Debug.Log($"[DirectInputFFB] Axis count: {_axes.Length}");
+            // Debug.Log($"[UnityFFB] Axis count: {_axes.Length}");
             // foreach (DeviceAxisInfo axis in _axes) {
             //     string ffbAxis = UnityEngine.JsonUtility.ToJson(axis, true);
             //     Debug.Log(ffbAxis);
@@ -177,14 +177,14 @@ namespace DirectInputFFB {
         // public static void SelectDevice(string deviceGuid){ // Sets the device as the primary controller device, Accepts Device.guidInstance
         //     // SHOULD unacquire existing devices here
         //     int hresult = Native.CreateFFBDevice(deviceGuid);
-        //     if (hresult != 0) { Debug.LogError($"[DirectInputFFB] CreateFFBDevice Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");return false; }
+        //     if (hresult != 0) { Debug.LogError($"[UnityFFB] CreateFFBDevice Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");return false; }
 
         //     // _activeDevice = _devices[0]; This is bullshit rn
 
         //     // if (disableAutoCenter) {
         //     //     hresult = Native.SetAutoCenter(false);
         //     //     if (hresult != 0) {
-        //     //         Debug.LogError($"[DirectInputFFB] SetAutoCenter Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");
+        //     //         Debug.LogError($"[UnityFFB] SetAutoCenter Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");
         //     //     }
         //     // }
 
@@ -204,7 +204,7 @@ namespace DirectInputFFB {
         //             _damperConditions[i] = new DICondition(); // For each axis create an effect
         //         }
         //     }
-        //     // Debug.Log($"[DirectInputFFB] Axis count: {_axes.Length}");
+        //     // Debug.Log($"[UnityFFB] Axis count: {_axes.Length}");
         //     // foreach (DeviceAxisInfo axis in _axes) {
         //     //     string ffbAxis = UnityEngine.JsonUtility.ToJson(axis, true);
         //     //     // Debug.Log(ffbAxis);
@@ -215,10 +215,10 @@ namespace DirectInputFFB {
             if(_ConstantForceEnabled){ return true; } // Already Enabled 
             
             int hresult = Native.AddFFBEffect(EffectsType.ConstantForce); // Enable the Constant Force Effect
-            if (hresult != 0) { Debug.LogError($"[DirectInputFFB] EnableConstantForce Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");return false; }
+            if (hresult != 0) { Debug.LogError($"[UnityFFB] EnableConstantForce Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");return false; }
 
             hresult = Native.UpdateConstantForce(0, _axisDirections); // Set Constant Force to 0
-            if (hresult != 0) { Debug.LogError($"[DirectInputFFB] UpdateConstantForce Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}"); }
+            if (hresult != 0) { Debug.LogError($"[UnityFFB] UpdateConstantForce Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}"); }
         
             _ConstantForceEnabled = true;
             return _ConstantForceEnabled;
@@ -227,14 +227,14 @@ namespace DirectInputFFB {
         public static bool ConstantForce(int magnitude){
             if(!_ConstantForceEnabled){ return false; }// Check if ConstantForce enabled
             int hresult = Native.UpdateConstantForce(magnitude, _axisDirections); // Apply the force
-            if (hresult != 0) { Debug.LogError($"[DirectInputFFB] UpdateConstantForce Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");return false; }
+            if (hresult != 0) { Debug.LogError($"[UnityFFB] UpdateConstantForce Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");return false; }
             return true; // Didn't fail so it worked
         }
 
         public static bool SetConstantForceGain(float gainPercent){ // Range 0 through 10,000 (https://docs.microsoft.com/en-us/previous-versions/windows/desktop/ee416616(v=vs.85))
             if(!_ConstantForceEnabled){ return false; }// Check if ConstantForce enabled
             int hresult = Native.UpdateEffectGain(EffectsType.ConstantForce, gainPercent);
-            if (hresult != 0) { Debug.LogError($"[DirectInputFFB] UpdateEffectGain Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");return false; }
+            if (hresult != 0) { Debug.LogError($"[UnityFFB] UpdateEffectGain Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");return false; }
             return true; // Didn't fail so it worked
         }
 
@@ -243,7 +243,7 @@ namespace DirectInputFFB {
         public static bool EnableSpringForce(){
             if(_SpringForceEnabled){ return true; } // Already Enabled 
             int hresult = Native.AddFFBEffect(EffectsType.Spring); // Try add the Spring Effect
-            if (hresult != 0) { Debug.LogError($"[DirectInputFFB] EnableSpringForce Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");return false; }
+            if (hresult != 0) { Debug.LogError($"[UnityFFB] EnableSpringForce Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");return false; }
             
             for (int i = 0; i < _springConditions.Length; i++) {
                 _springConditions[i].offset = 0;
@@ -254,7 +254,7 @@ namespace DirectInputFFB {
                 _springConditions[i].deadband = 0;
             }
             hresult = Native.UpdateSpringRaw(_springConditions);
-            if (hresult != 0) { Debug.LogError($"[DirectInputFFB] UpdateSpring Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");return false; }
+            if (hresult != 0) { Debug.LogError($"[UnityFFB] UpdateSpring Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");return false; }
             _SpringForceEnabled = true;
             return _SpringForceEnabled;
         }
@@ -262,14 +262,14 @@ namespace DirectInputFFB {
         public static bool SpringForce(DICondition[] conditions){ // Useful if you want to set deadband or want a non-symmetric effect 
             if(!_SpringForceEnabled){ return false; }// Check if SpringForce enabled
             int hresult = Native.UpdateSpringRaw(conditions);
-            if (hresult != 0) { Debug.LogError($"[DirectInputFFB] SpringForceRaw Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");return false; }
+            if (hresult != 0) { Debug.LogError($"[UnityFFB] SpringForceRaw Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");return false; }
             return true; // Didn't fail so it worked
         }
         
         public static bool SpringForce(int SpringOffset, int SpringCoefficient, int SpringSaturation){
             if(!_SpringForceEnabled){ return false; }// Check if SpringForce enabled
             int hresult = Native.UpdateSpring(SpringOffset, SpringCoefficient, SpringSaturation);
-            if (hresult != 0) { Debug.LogError($"[DirectInputFFB] UpdateSpring Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");return false; }
+            if (hresult != 0) { Debug.LogError($"[UnityFFB] UpdateSpring Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");return false; }
             return true; // Didn't fail so it worked
         }
 
@@ -278,7 +278,7 @@ namespace DirectInputFFB {
         public static bool EnableDamperForce(){ // Adds the Damper effect to the DirectInput Device
             if(_DamperForceEnabled){ return true; } // Already Enabled 
             int hresult = Native.AddFFBEffect(EffectsType.Damper); // Try add the Damper Effect
-            if (hresult != 0) { Debug.LogError($"[DirectInputFFB] EnableDamperForce Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");return false; }      
+            if (hresult != 0) { Debug.LogError($"[UnityFFB] EnableDamperForce Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");return false; }      
             
             for (int i = 0; i < _damperConditions.Length; i++) {
                 _damperConditions[i].offset = 0;
@@ -289,7 +289,7 @@ namespace DirectInputFFB {
                 _damperConditions[i].deadband = 0;
             }
             hresult = Native.UpdateDamperRaw(_damperConditions);
-            if (hresult != 0) { Debug.LogError($"[DirectInputFFB] UpdateDamper Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");return false; }
+            if (hresult != 0) { Debug.LogError($"[UnityFFB] UpdateDamper Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");return false; }
             _DamperForceEnabled = true;
 
             return _DamperForceEnabled;
@@ -298,14 +298,14 @@ namespace DirectInputFFB {
         public static bool DamperForce(DICondition[] conditions){ // Useful if you want to set deadband or want a non-symmetric effect 
             if(!_DamperForceEnabled){ return false; }// Check if DamperForce enabled
             int hresult = Native.UpdateDamperRaw(conditions);
-            if (hresult != 0) { Debug.LogError($"[DirectInputFFB] DamperForceRaw Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");return false; }
+            if (hresult != 0) { Debug.LogError($"[UnityFFB] DamperForceRaw Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");return false; }
             return true; // Didn't fail so it worked
         }
 
         public static bool DamperForce(int magnitude){
             if(!_DamperForceEnabled){ return false; }// Check if DamperForce enabled
             int hresult = Native.UpdateDamper(magnitude);
-            if (hresult != 0) { Debug.LogError($"[DirectInputFFB] UpdateDamper Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");return false; }
+            if (hresult != 0) { Debug.LogError($"[UnityFFB] UpdateDamper Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");return false; }
             return true; // Didn't fail so it worked
         }
 
@@ -315,7 +315,7 @@ namespace DirectInputFFB {
             if(_FrictionForceEnabled){ return true; } // Already Enabled 
 
             int hresult = Native.AddFFBEffect(EffectsType.Friction); // Try add the Friction Effect
-            if (hresult != 0) { Debug.LogError($"[DirectInputFFB] EnableFrictionForce Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");return false; }      
+            if (hresult != 0) { Debug.LogError($"[UnityFFB] EnableFrictionForce Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");return false; }      
 
             for (int i = 0; i < _frictionConditions.Length; i++) {
                 _frictionConditions[i].offset = 0;
@@ -326,7 +326,7 @@ namespace DirectInputFFB {
                 _frictionConditions[i].deadband = 0;
             }
             hresult = Native.UpdateFrictionRaw(_frictionConditions);
-            if (hresult != 0) { Debug.LogError($"[DirectInputFFB] UpdateFriction Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");return false; }
+            if (hresult != 0) { Debug.LogError($"[UnityFFB] UpdateFriction Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");return false; }
             _FrictionForceEnabled = true;
 
             return _FrictionForceEnabled;
@@ -335,14 +335,14 @@ namespace DirectInputFFB {
         public static bool FrictionForce(DICondition[] conditions){ // Useful if you want to set deadband or want a non-symmetric effect 
             if(!_FrictionForceEnabled){ return false; }// Check if FrictionForce enabled
             int hresult = Native.UpdateFrictionRaw(conditions);
-            if (hresult != 0) { Debug.LogError($"[DirectInputFFB] FrictionForceRaw Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");return false; }
+            if (hresult != 0) { Debug.LogError($"[UnityFFB] FrictionForceRaw Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");return false; }
             return true; // Didn't fail so it worked
         }
 
         public static bool FrictionForce(int magnitude){
             if(!_FrictionForceEnabled){ return false; } // Check if FrictionForce enabled
             int hresult = Native.UpdateFriction(magnitude);
-            if (hresult != 0) { Debug.LogError($"[DirectInputFFB] FrictionForce Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");return false; }
+            if (hresult != 0) { Debug.LogError($"[UnityFFB] FrictionForce Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");return false; }
             return true; // Didn't fail so it worked
         }
 
@@ -352,7 +352,7 @@ namespace DirectInputFFB {
             if(_InertiaForceEnabled){ return true; } // Already Enabled 
 
             int hresult = Native.AddFFBEffect(EffectsType.Inertia); // Try add the Inertia Effect
-            if (hresult != 0) { Debug.LogError($"[DirectInputFFB] EnableInertiaForce Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");return false; }      
+            if (hresult != 0) { Debug.LogError($"[UnityFFB] EnableInertiaForce Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");return false; }      
 
             for (int i = 0; i < _inertiaConditions.Length; i++) {
                 _inertiaConditions[i].offset = 0;
@@ -363,7 +363,7 @@ namespace DirectInputFFB {
                 _inertiaConditions[i].deadband = 0;
             }
             hresult = Native.UpdateInertiaRaw(_inertiaConditions);
-            if (hresult != 0) { Debug.LogError($"[DirectInputFFB] UpdateInertia Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");return false; }
+            if (hresult != 0) { Debug.LogError($"[UnityFFB] UpdateInertia Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");return false; }
             _InertiaForceEnabled = true;
 
             return _InertiaForceEnabled;
@@ -372,14 +372,14 @@ namespace DirectInputFFB {
         public static bool InertiaForce(DICondition[] conditions){ // Useful if you want to set deadband or want a non-symmetric effect 
             if(!_InertiaForceEnabled){ return false; }// Check if InertiaForce enabled
             int hresult = Native.UpdateInertiaRaw(conditions);
-            if (hresult != 0) { Debug.LogError($"[DirectInputFFB] InertiaForceRaw Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");return false; }
+            if (hresult != 0) { Debug.LogError($"[UnityFFB] InertiaForceRaw Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");return false; }
             return true; // Didn't fail so it worked
         }
 
         public static bool InertiaForce(int magnitude){
             if(!_InertiaForceEnabled){ return false; } // Check if InertiaForce enabled
             int hresult = Native.UpdateInertia(magnitude);
-            if (hresult != 0) { Debug.LogError($"[DirectInputFFB] InertiaForce Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");return false; }
+            if (hresult != 0) { Debug.LogError($"[UnityFFB] InertiaForce Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");return false; }
             return true; // Didn't fail so it worked
         }
 
@@ -445,9 +445,9 @@ namespace DirectInputFFB {
         // }
 
         public static void PollDevice(){
-            DirectInputFFB.DIJOYSTATE2 DeviceState = new DirectInputFFB.DIJOYSTATE2(); // Store the raw state of the device
-            int hresult = DirectInputFFB.Native.GetDeviceState(ref DeviceState); // Fetch the device state
-            if(hresult!=0){ Debug.LogError($"[DirectInputFFB] GetDeviceState : 0x{hresult.ToString("x")} {DirectInputFFB.WinErrors.GetSystemMessage(hresult)}\n[DirectInputFFB] Perhaps the device has not been attached/acquired"); }
+            UnityFFB.DIJOYSTATE2 DeviceState = new UnityFFB.DIJOYSTATE2(); // Store the raw state of the device
+            int hresult = UnityFFB.Native.GetDeviceState(ref DeviceState); // Fetch the device state
+            if(hresult!=0){ Debug.LogError($"[UnityFFB] GetDeviceState : 0x{hresult.ToString("x")} {UnityFFB.WinErrors.GetSystemMessage(hresult)}\n[UnityFFB] Perhaps the device has not been attached/acquired"); }
             
             FlatJoyState2 state = Utilities.FlattenDIJOYSTATE2(DeviceState); // Flatten the state for comparison
             if( !state.Equals(_activeDeviceState) ){ // Some input has changed
