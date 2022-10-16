@@ -7,6 +7,7 @@ DIDevice::DIDevice(LPDIRECTINPUT8 pDI, GUID deviceGuid, DeviceInfo* deviceInfo) 
    this->deviceGuid = deviceGuid;
    this->pDI = pDI;
    this->deviceInfo = deviceInfo;
+   this->joyState = { 0 };
 }
 
 HRESULT DIDevice::CreateDevice()
@@ -23,7 +24,7 @@ HRESULT DIDevice::CreateDevice()
    }
 
    // Not sure if this is necessary.
-   if (FAILED(hr = pDevice->SetDataFormat(&c_dfDIJoystick)))
+   if (FAILED(hr = pDevice->SetDataFormat(&c_dfDIJoystick2)))
    {
       return hr;
    }
@@ -55,6 +56,19 @@ void DIDevice::DestroyDevice()
       pDevice->Release();
       pDevice = NULL;
    }
+}
+
+HRESULT DIDevice::GetDeviceState(FlatJoyState2& state)
+{
+   HRESULT hr = E_FAIL;
+   if (pDevice == NULL) {
+      return hr;
+   }
+
+   hr = pDevice->GetDeviceState(sizeof(DIJOYSTATE2), &joyState);
+   FlattenDIJOYSTATE2(joyState, state);
+
+   return hr;
 }
 
 DeviceAxisInfo* DIDevice::EnumerateFFBAxes(int &axisCount)

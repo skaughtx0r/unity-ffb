@@ -80,6 +80,7 @@ BOOL CALLBACK _cbEnumDevices(const DIDEVICEINSTANCE* pInst, void* pContext)
       deviceType == DI8DEVTYPE_GAMEPAD ||
       deviceType == DI8DEVTYPE_DRIVING ||
       deviceType == DI8DEVTYPE_FLIGHT ||
+      deviceType == DI8DEVTYPE_1STPERSON ||
       deviceType == DI8DEVTYPE_DEVICECTRL ||
       deviceType == DI8DEVTYPE_SUPPLEMENTAL
       )) {
@@ -98,6 +99,21 @@ BOOL CALLBACK _cbEnumDevices(const DIDEVICEINSTANCE* pInst, void* pContext)
    std::string strInstanceName = utf16ToUTF8(pInst->tszInstanceName);
    std::string strProductName = utf16ToUTF8(pInst->tszProductName);
 
+   HRESULT hr;
+   LPDIRECTINPUTDEVICE8 dvce = nullptr;
+   if (FAILED(hr = g_pDI->CreateDevice(pInst->guidInstance, &dvce, NULL))) { return true; } // L"CreateDevice failed! 0x%08x", hr
+
+   DIPROPDWORD vidpid;
+   vidpid.diph.dwSize = sizeof(DIPROPDWORD);
+   vidpid.diph.dwHeaderSize = sizeof(DIPROPHEADER);
+   vidpid.diph.dwObj = 0;
+   vidpid.diph.dwHow = DIPH_DEVICE;
+   if (FAILED(hr = dvce->GetProperty(DIPROP_VIDPID, &vidpid.diph))) { dvce->Release(); return true; } // L"GetProperty failed! Failed to get symbolic path for device 0x%08x", hr
+   dvce->Release();
+
+   di.vendorId = LOWORD(vidpid.dwData);
+   di.productId = HIWORD(vidpid.dwData);
+
    di.guidInstance = new char[strGuidInstance.length() + 1];
    di.guidProduct = new char[strGuidProduct.length() + 1];
    di.instanceName = new char[strInstanceName.length() + 1];
@@ -109,9 +125,14 @@ BOOL CALLBACK _cbEnumDevices(const DIDEVICEINSTANCE* pInst, void* pContext)
    strcpy_s(di.instanceName, strInstanceName.length() + 1, strInstanceName.c_str());
    strcpy_s(di.productName, strProductName.length() + 1, strProductName.c_str());
 
+   g_vDeviceInstances.push_back(di);
+
+   if (g_mDeviceInstances.find(strGuidInstance) != g_mDeviceInstances.end()) {
+      return DIENUM_CONTINUE;
+   }
+
    DIDevice* device = new DIDevice(g_pDI, pInst->guidInstance, &di);
    g_mDeviceInstances[strGuidInstance] = device;
-   g_vDeviceInstances.push_back(di);
 
    return DIENUM_CONTINUE;
 }
@@ -141,6 +162,15 @@ HRESULT CreateDevice(LPCSTR guidInstance)
    std::string strInstance = std::string(guidInstance);
    if (g_mDeviceInstances.find(strInstance) != g_mDeviceInstances.end()) {
       return g_mDeviceInstances[strInstance]->CreateDevice();
+   }
+   return E_FAIL;
+}
+
+HRESULT GetDeviceState(LPCSTR guidInstance, FlatJoyState2& state)
+{
+   std::string strInstance = std::string(guidInstance);
+   if (g_mDeviceInstances.find(strInstance) != g_mDeviceInstances.end()) {
+      return g_mDeviceInstances[strInstance]->GetDeviceState(state);
    }
    return E_FAIL;
 }
@@ -298,10 +328,6 @@ void FreeDirectInput()
  */
 void ClearDeviceInstances()
 {
-   for (auto& device : g_mDeviceInstances) {
-      device.second->DestroyDevice();
-   }
-   g_mDeviceInstances.clear();
    for (int i = 0; i < g_vDeviceInstances.size(); i++)
    {
       delete[] g_vDeviceInstances[i].guidInstance;
@@ -318,6 +344,10 @@ void ClearDeviceInstances()
  */
 void StopDirectInput()
 {
+   for (auto& device : g_mDeviceInstances) {
+      device.second->DestroyDevice();
+   }
+   g_mDeviceInstances.clear();
    ClearDeviceInstances();
    FreeDirectInput();
 }

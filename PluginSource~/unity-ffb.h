@@ -31,6 +31,7 @@ extern "C"
    UNITYFFB_API HRESULT UpdateConstantForce(LPCSTR guidInstance, LONG magnitude, LONG* directions);
    UNITYFFB_API HRESULT UpdateSpring(LPCSTR guidInstance, DICONDITION* conditions);
    UNITYFFB_API HRESULT SetAutoCenter(LPCSTR guidInstance, bool autoCenter);
+   UNITYFFB_API HRESULT GetDeviceState(LPCSTR guidInstance, FlatJoyState2& state);
    UNITYFFB_API void StartAllFFBEffects(LPCSTR guidInstance);
    UNITYFFB_API void StopAllFFBEffects(LPCSTR guidInstance);
    UNITYFFB_API void StopDirectInput();

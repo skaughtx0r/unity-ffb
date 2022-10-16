@@ -64,7 +64,7 @@ namespace UnityFFB
             if (nativeLibLoadFailed) { return; }
             if (constantForceEnabled)
             {
-                UnityFFBNative.UpdateConstantForce((int)(force * sensitivity), axisDirections);
+                // Native.UpdateConstantForce((int)(force * sensitivity), axisDirections);
             }
         }
 #endif
@@ -79,7 +79,7 @@ namespace UnityFFB
 
             try
             {
-                if (UnityFFBNative.StartDirectInput() >= 0)
+                if (Native.StartDirectInput() >= 0)
                 {
                     ffbEnabled = true;
                 }
@@ -90,7 +90,7 @@ namespace UnityFFB
 
                 int deviceCount = 0;
 
-                IntPtr ptrDevices = UnityFFBNative.EnumerateFFBDevices(ref deviceCount);
+                IntPtr ptrDevices = Native.EnumerateDevices(ref deviceCount);
 
                 Debug.Log($"[UnityFFB] Device count: {devices.Length}");
                 if (deviceCount > 0)
@@ -110,10 +110,10 @@ namespace UnityFFB
                         Debug.Log(ffbAxis);
                     }
 
-                    if (autoSelectFirstDevice)
-                    {
-                        SelectDevice(devices[0].guidInstance);
-                    }
+                    //if (autoSelectFirstDevice)
+                    //{
+                    //    SelectDevice(devices[0].guidInstance);
+                    //}
                 }
             }
             catch (DllNotFoundException e)
@@ -129,7 +129,7 @@ namespace UnityFFB
             if (nativeLibLoadFailed) { return; }
             try
             {
-                UnityFFBNative.StopDirectInput();
+                Native.StopDirectInput();
             }
             catch (DllNotFoundException e)
             {
@@ -144,116 +144,116 @@ namespace UnityFFB
 #endif
         }
 
-        public void SelectDevice(string deviceGuid)
-        {
-#if UNITY_STANDALONE_WIN
-            if (nativeLibLoadFailed) { return; }
-            try
-            {
-                // For now just initialize the first FFB Device.
-                int hresult = UnityFFBNative.CreateFFBDevice(deviceGuid);
-                if (hresult == 0)
-                {
-                    activeDevice = devices[0];
+//        public void SelectDevice(string deviceGuid)
+//        {
+//#if UNITY_STANDALONE_WIN
+//            if (nativeLibLoadFailed) { return; }
+//            try
+//            {
+//                // For now just initialize the first FFB Device.
+//                int hresult = Native.CreateDevice(deviceGuid);
+//                if (hresult == 0)
+//                {
+//                    activeDevice = devices[0];
 
-                    if (disableAutoCenter)
-                    {
-                        hresult = UnityFFBNative.SetAutoCenter(false);
-                        if (hresult != 0)
-                        {
-                            Debug.LogError($"[UnityFFB] SetAutoCenter Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");
-                        }
-                    }
+//                    if (disableAutoCenter)
+//                    {
+//                        hresult = Native.SetAutoCenter(false);
+//                        if (hresult != 0)
+//                        {
+//                            Debug.LogError($"[UnityFFB] SetAutoCenter Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");
+//                        }
+//                    }
 
-                    int axisCount = 0;
-                    IntPtr ptrAxes = UnityFFBNative.EnumerateFFBAxes(ref axisCount);
-                    if (axisCount > 0)
-                    {
-                        axes = new DeviceAxisInfo[axisCount];
-                        axisDirections = new int[axisCount];
-                        springConditions = new DICondition[axisCount];
+//                    int axisCount = 0;
+//                    IntPtr ptrAxes = Native.EnumerateFFBAxes(ref axisCount);
+//                    if (axisCount > 0)
+//                    {
+//                        axes = new DeviceAxisInfo[axisCount];
+//                        axisDirections = new int[axisCount];
+//                        springConditions = new DICondition[axisCount];
 
-                        int axisSize = Marshal.SizeOf(typeof(DeviceAxisInfo));
-                        for (int i = 0; i < axisCount; i++)
-                        {
-                            IntPtr pCurrent = ptrAxes + i * axisSize;
-                            axes[i] = Marshal.PtrToStructure<DeviceAxisInfo>(pCurrent);
-                            axisDirections[i] = 0;
-                            springConditions[i] = new DICondition();
-                        }
+//                        int axisSize = Marshal.SizeOf(typeof(DeviceAxisInfo));
+//                        for (int i = 0; i < axisCount; i++)
+//                        {
+//                            IntPtr pCurrent = ptrAxes + i * axisSize;
+//                            axes[i] = Marshal.PtrToStructure<DeviceAxisInfo>(pCurrent);
+//                            axisDirections[i] = 0;
+//                            springConditions[i] = new DICondition();
+//                        }
 
-                        if (addConstantForce)
-                        {
-                            hresult = UnityFFBNative.AddFFBEffect(EffectsType.ConstantForce);
-                            if (hresult == 0)
-                            {
-                                hresult = UnityFFBNative.UpdateConstantForce(0, axisDirections);
-                                if (hresult != 0)
-                                {
-                                    Debug.LogError($"[UnityFFB] UpdateConstantForce Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");
-                                }
-                                constantForceEnabled = true;
-                            }
-                            else
-                            {
-                                Debug.LogError($"[UnityFFB] AddConstantForce Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");
-                            }
-                        }
+//                        if (addConstantForce)
+//                        {
+//                            hresult = Native.AddFFBEffect(EffectsType.ConstantForce);
+//                            if (hresult == 0)
+//                            {
+//                                hresult = Native.UpdateConstantForce(0, axisDirections);
+//                                if (hresult != 0)
+//                                {
+//                                    Debug.LogError($"[UnityFFB] UpdateConstantForce Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");
+//                                }
+//                                constantForceEnabled = true;
+//                            }
+//                            else
+//                            {
+//                                Debug.LogError($"[UnityFFB] AddConstantForce Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");
+//                            }
+//                        }
 
-                        if (addSpringForce)
-                        {
-                            hresult = UnityFFBNative.AddFFBEffect(EffectsType.Spring);
-                            if (hresult == 0)
-                            {
-                                for (int i = 0; i < springConditions.Length; i++)
-                                {
-                                    springConditions[i].deadband = 0;
-                                    springConditions[i].offset = 0;
-                                    springConditions[i].negativeCoefficient = 2000;
-                                    springConditions[i].positiveCoefficient = 2000;
-                                    springConditions[i].negativeSaturation = 10000;
-                                    springConditions[i].positiveSaturation = 10000;
-                                }
-                                hresult = UnityFFBNative.UpdateSpring(springConditions);
-                                Debug.LogError($"[UnityFFB] UpdateSpringForce Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");
-                            }
-                            else
-                            {
-                                Debug.LogError($"[UnityFFB] AddSpringForce Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");
-                            }
-                        }
-                    }
-                    Debug.Log($"[UnityFFB] Axis count: {axes.Length}");
-                    foreach (DeviceAxisInfo axis in axes)
-                    {
-                        string ffbAxis = UnityEngine.JsonUtility.ToJson(axis, true);
-                        Debug.Log(ffbAxis);
-                    }
-                }
-                else
-                {
-                    activeDevice = null;
-                    Debug.LogError($"[UnityFFB] 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");
-                }
-            }
-            catch (DllNotFoundException e)
-            {
-                LogMissingRuntimeError();
-            }
-#endif
-        }
+//                        if (addSpringForce)
+//                        {
+//                            hresult = Native.AddFFBEffect(EffectsType.Spring);
+//                            if (hresult == 0)
+//                            {
+//                                for (int i = 0; i < springConditions.Length; i++)
+//                                {
+//                                    springConditions[i].deadband = 0;
+//                                    springConditions[i].offset = 0;
+//                                    springConditions[i].negativeCoefficient = 2000;
+//                                    springConditions[i].positiveCoefficient = 2000;
+//                                    springConditions[i].negativeSaturation = 10000;
+//                                    springConditions[i].positiveSaturation = 10000;
+//                                }
+//                                hresult = Native.UpdateSpring(springConditions);
+//                                Debug.LogError($"[UnityFFB] UpdateSpringForce Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");
+//                            }
+//                            else
+//                            {
+//                                Debug.LogError($"[UnityFFB] AddSpringForce Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");
+//                            }
+//                        }
+//                    }
+//                    Debug.Log($"[UnityFFB] Axis count: {axes.Length}");
+//                    foreach (DeviceAxisInfo axis in axes)
+//                    {
+//                        string ffbAxis = UnityEngine.JsonUtility.ToJson(axis, true);
+//                        Debug.Log(ffbAxis);
+//                    }
+//                }
+//                else
+//                {
+//                    activeDevice = null;
+//                    Debug.LogError($"[UnityFFB] 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");
+//                }
+//            }
+//            catch (DllNotFoundException e)
+//            {
+//                LogMissingRuntimeError();
+//            }
+//#endif
+//        }
 
-        public void SetConstantForceGain(float gainPercent)
-        {
-#if UNITY_STANDALONE_WIN
-            if (nativeLibLoadFailed) { return; }
-            if (constantForceEnabled)
-            {
-                int hresult = UnityFFBNative.UpdateEffectGain(EffectsType.ConstantForce, gainPercent);
-                Debug.LogError($"[UnityFFB] UpdateEffectGain Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");
-            }
-#endif
-        }
+//        public void SetConstantForceGain(float gainPercent)
+//        {
+//#if UNITY_STANDALONE_WIN
+//            if (nativeLibLoadFailed) { return; }
+//            if (constantForceEnabled)
+//            {
+//                int hresult = Native.UpdateEffectGain(EffectsType.ConstantForce, gainPercent);
+//                Debug.LogError($"[UnityFFB] UpdateEffectGain Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");
+//            }
+//#endif
+//        }
 
         public void StartFFBEffects()
         {
@@ -261,7 +261,7 @@ namespace UnityFFB
             if (nativeLibLoadFailed) { return; }
             try
             {
-                UnityFFBNative.StartAllFFBEffects();
+                Native.StartAllFFBEffects();
                 constantForceEnabled = true;
             }
             catch (DllNotFoundException e)
@@ -277,7 +277,7 @@ namespace UnityFFB
             if (nativeLibLoadFailed) { return; }
             try
             {
-                UnityFFBNative.StopAllFFBEffects();
+                Native.StopAllFFBEffects();
                 constantForceEnabled = false;
             }
             catch (DllNotFoundException e)

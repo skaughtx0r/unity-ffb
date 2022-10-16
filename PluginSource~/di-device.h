@@ -11,6 +11,7 @@ public:
    std::vector<DeviceAxisInfo> vDeviceAxes;
    std::map<Effects::Type, LPDIRECTINPUTEFFECT> mEffects;
    std::map<Effects::Type, DIEFFECT> mDIEFFECTs;
+   DIJOYSTATE2 joyState;
 
    LPDIRECTINPUTDEVICE8 pDevice;
 
@@ -18,6 +19,8 @@ public:
 
    HRESULT CreateDevice();
    void DestroyDevice();
+
+   HRESULT GetDeviceState(FlatJoyState2& state);
 
    DeviceAxisInfo* EnumerateFFBAxes(int &axisCount);
    static BOOL CALLBACK _cbEnumFFBAxes(const DIDEVICEOBJECTINSTANCE* pdidoi, void* pContext);
