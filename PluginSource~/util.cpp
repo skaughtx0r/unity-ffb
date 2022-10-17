@@ -152,3 +152,16 @@ void FlattenDIJOYSTATE2(DIJOYSTATE2& deviceState, FlatJoyState2& state) {
       }
    }
 }
+
+std::function<void()> Debounce(const std::function<void()>&f, int period) {
+   static auto created = std::chrono::high_resolution_clock::now();
+   // "=" allow to pass by copy all used variables (created and period)
+   // "&f" allow to pass by reference f variable
+   std::function<void()> fn = [=, &f]() {
+      auto now = std::chrono::high_resolution_clock::now();
+      if (std::chrono::duration_cast<std::chrono::milliseconds>(now - created).count() > period) {
+         f();
+      }
+   };
+   return fn;
+}

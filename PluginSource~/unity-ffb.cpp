@@ -3,12 +3,16 @@
 
 #include "pch.h"
 #include "framework.h"
+#include "dbt.h"
 #include "unity-ffb.h"
 #include "util.h"
 #include "di-device.h"
 
 std::map<std::string, DIDevice*> g_mDeviceInstances;
 std::vector<DeviceInfo> g_vDeviceInstances;
+
+DeviceChangedCallback g_fnDeviceChangedCallback = NULL;
+HHOOK g_deviceChangedHook = NULL;
 
 /**
  * This initializes the DirectInput 8 interface.
@@ -22,6 +26,16 @@ HRESULT StartDirectInput()
    {
       return S_OK;
    }
+
+   if (g_deviceChangedHook != NULL) {
+      UnhookWindowsHookEx(g_deviceChangedHook);
+      g_deviceChangedHook = NULL;
+   }
+
+   HMODULE module = GetModuleHandleW(NULL);
+   DWORD threadID = GetCurrentThreadId();
+   g_deviceChangedHook = SetWindowsHookExW(WH_CALLWNDPROC, (HOOKPROC)&_cbDeviceChanged, module, threadID);
+
    return DirectInput8Create(
       GetModuleHandle(NULL),
       DIRECTINPUT_VERSION,
@@ -29,6 +43,46 @@ HRESULT StartDirectInput()
       (void**)&g_pDI,
       NULL
    );
+}
+
+void RegisterDeviceChangedCallback(DeviceChangedCallback fnCallback)
+{
+   g_fnDeviceChangedCallback = fnCallback;
+}
+
+void UnregisterDeviceChangedCallback() {
+   g_fnDeviceChangedCallback = NULL;
+}
+
+void FireDeviceChangedCallback() {
+   if (g_fnDeviceChangedCallback != NULL) {
+      g_fnDeviceChangedCallback();
+   }
+}
+
+LRESULT _cbDeviceChanged(int code, WPARAM wParam, LPARAM lParam)
+{
+   // invalid code skip
+   if (code < 0) return CallNextHookEx(NULL, code, wParam, lParam);
+
+   // check if device was added/removed
+   PCWPSTRUCT pMsg = PCWPSTRUCT(lParam);
+   if (pMsg->message == WM_DEVICECHANGE)
+   {
+      switch (pMsg->wParam)
+      {
+      case DBT_DEVICEARRIVAL:
+         Debounce(FireDeviceChangedCallback, 1000);
+         break;
+
+      case DBT_DEVICEREMOVECOMPLETE:
+         Debounce(FireDeviceChangedCallback, 1000);
+         break;
+      }
+   }
+
+   // continue as normal
+   return CallNextHookEx(NULL, code, wParam, lParam);
 }
 
 /**
@@ -219,6 +273,14 @@ HRESULT RemoveFFBEffect(LPCSTR guidInstance, Effects::Type effectType)
    return E_FAIL;
 }
 
+void RemoveAllFFBEffects(LPCSTR guidInstance)
+{
+   std::string strInstance = std::string(guidInstance);
+   if (g_mDeviceInstances.find(strInstance) != g_mDeviceInstances.end()) {
+       g_mDeviceInstances[strInstance]->DestroyEffects();
+   }
+}
+
 /**
  * This will start all force feedback effects.
  */
@@ -344,6 +406,10 @@ void ClearDeviceInstances()
  */
 void StopDirectInput()
 {
+   if (g_deviceChangedHook != NULL) {
+      UnhookWindowsHookEx(g_deviceChangedHook);
+      g_deviceChangedHook = NULL;
+   }
    for (auto& device : g_mDeviceInstances) {
       device.second->DestroyDevice();
    }

@@ -397,4 +397,5 @@ void DIDevice::DestroyEffects()
       }
    }
    mEffects.clear();
+   mDIEFFECTs.clear();
 }

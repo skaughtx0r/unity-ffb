@@ -16,3 +16,5 @@ DWORD GuidToDIJOFS(GUID axisType);
 float clamp(float val, float min, float max);
 
 void FlattenDIJOYSTATE2(DIJOYSTATE2& deviceState, FlatJoyState2& state);
+
+std::function<void()> Debounce(const std::function<void()>&f, int period);

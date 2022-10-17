@@ -262,7 +262,7 @@ namespace UnityFFB {
         [FieldOffset(8)]
         public UInt64 buttonsB; // Buttons seperated into banks of 64-Bits to fit into Unsigned 64-bit integer
 
-        [InputControl(name = "X", layout = "Axis", displayName = "X", parameters = "normalize,normalizeMin=0,normalizeMax=1,normalizeZero=0.5")]
+        [InputControl(name = "X", layout = "Axis", displayName = "X")]
         [FieldOffset(16)]
         public UInt16 lX; // X-axis
         [InputControl(name = "Y", layout = "Axis", displayName = "Y")]

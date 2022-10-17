@@ -33,6 +33,7 @@ namespace UnityFFB
         [RuntimeInitializeOnLoadMethod]
         private static void Initialize()
         {
+
             DirectInputManager.Initialize();
 
             InputSystem.Update();
@@ -46,7 +47,7 @@ namespace UnityFFB
                         VidPid vidpid = JsonUtility.FromJson<VidPid>(dev.description.capabilities);
                         if (vidpid.vendorId == di.vendorId && vidpid.productId == di.productId)
                         {
-                            InputSystem.DisableDevice(dev);
+                            InputSystem.RemoveDevice(dev);
                         }
                     }
                     else if (dev.description.interfaceName == "DirectInput")
@@ -78,6 +79,23 @@ namespace UnityFFB
                     });
                 }
             }
+        }
+
+        public static void Deinitialize()
+        {
+            foreach (InputDevice dev in InputSystem.devices)
+            {
+                if (dev.description.interfaceName == "DirectInput")
+                {
+                    InputSystem.RemoveDevice(dev);
+                }
+                else if (dev.description.interfaceName == "HID")
+                {
+                    InputSystem.EnableDevice(dev);
+                }
+            }
+            DirectInputManager.DeInitialize();
+            InputSystem.Update();
         }
 
         protected override void FinishSetup()

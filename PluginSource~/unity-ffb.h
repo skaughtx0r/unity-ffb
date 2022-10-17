@@ -15,6 +15,7 @@ DWORD                   g_dwNumForceFeedbackAxis = 0;
 
 BOOL CALLBACK _cbEnumDevices(const DIDEVICEINSTANCE* pInst, void* pContext);
 BOOL CALLBACK _cbEnumFFBDevices(const DIDEVICEINSTANCE* pInst, void* pContext);
+LRESULT _cbDeviceChanged(int code, WPARAM wParam, LPARAM lParam);
 
 void ClearDeviceInstances();
 void FreeDirectInput();
@@ -32,7 +33,13 @@ extern "C"
    UNITYFFB_API HRESULT UpdateSpring(LPCSTR guidInstance, DICONDITION* conditions);
    UNITYFFB_API HRESULT SetAutoCenter(LPCSTR guidInstance, bool autoCenter);
    UNITYFFB_API HRESULT GetDeviceState(LPCSTR guidInstance, FlatJoyState2& state);
+   UNITYFFB_API HRESULT RemoveFFBEffect(LPCSTR guidInstance, Effects::Type effectType);
+   UNITYFFB_API void RemoveAllFFBEffects(LPCSTR guidInstance);
    UNITYFFB_API void StartAllFFBEffects(LPCSTR guidInstance);
    UNITYFFB_API void StopAllFFBEffects(LPCSTR guidInstance);
    UNITYFFB_API void StopDirectInput();
+
+   typedef void(__stdcall* DeviceChangedCallback)();
+   UNITYFFB_API void RegisterDeviceChangedCallback(DeviceChangedCallback fnCallback);
+   UNITYFFB_API void UnregisterDeviceChangedCallback();
 }

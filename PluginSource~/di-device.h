@@ -7,6 +7,7 @@ public:
    LPDIRECTINPUT8 pDI;
    GUID deviceGuid;
    DeviceInfo* deviceInfo;
+   HWND hWnd;
    DWORD _axisCount;
    std::vector<DeviceAxisInfo> vDeviceAxes;
    std::map<Effects::Type, LPDIRECTINPUTEFFECT> mEffects;
