@@ -36,26 +36,59 @@ namespace UnityFFB
 
             DirectInputManager.Initialize();
 
+            RegisterDevices();
+        }
+
+        public static void RegisterDevices()
+        {
             InputSystem.Update();
+
+            // Remove Disconnected Direct Input Devices
+            foreach (InputDevice dev in InputSystem.devices)
+            {
+                if (dev.description.interfaceName == "DirectInput")
+                {
+                    bool deviceFound = false;
+                    foreach (DeviceInfo di in DirectInputManager.devices)
+                    {
+                        VidPid vidpid = JsonUtility.FromJson<VidPid>(dev.description.capabilities);
+                        if (vidpid.vendorId == di.vendorId && vidpid.productId == di.productId)
+                        {
+                            deviceFound = true;
+                        }
+                    }
+                    if (!deviceFound)
+                    {
+                        InputSystem.RemoveDevice(dev);
+                    }
+                }
+            }
+
+            InputSystem.Update();
+
+            // Remove Duplicate Input System Direct Input Devices
             foreach (DeviceInfo di in DirectInputManager.devices)
             {
                 bool skip = false;
                 foreach (InputDevice dev in InputSystem.devices)
                 {
-                    if (dev.description.interfaceName == "HID")
+                    if (dev != null)
                     {
-                        VidPid vidpid = JsonUtility.FromJson<VidPid>(dev.description.capabilities);
-                        if (vidpid.vendorId == di.vendorId && vidpid.productId == di.productId)
+                        if (dev.description.interfaceName == "HID")
                         {
-                            InputSystem.RemoveDevice(dev);
+                            VidPid vidpid = JsonUtility.FromJson<VidPid>(dev.description.capabilities);
+                            if (vidpid.vendorId == di.vendorId && vidpid.productId == di.productId)
+                            {
+                                InputSystem.RemoveDevice(dev);
+                            }
                         }
-                    }
-                    else if (dev.description.interfaceName == "DirectInput")
-                    {
-                        VidPid vidpid = JsonUtility.FromJson<VidPid>(dev.description.capabilities);
-                        if (vidpid.vendorId == di.vendorId && vidpid.productId == di.productId)
+                        else if (dev.description.interfaceName == "DirectInput")
                         {
-                            skip = true;
+                            VidPid vidpid = JsonUtility.FromJson<VidPid>(dev.description.capabilities);
+                            if (vidpid.vendorId == di.vendorId && vidpid.productId == di.productId)
+                            {
+                                skip = true;
+                            }
                         }
                     }
                 }

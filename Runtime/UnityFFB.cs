@@ -62,7 +62,7 @@ namespace UnityFFB
         private void FixedUpdate()
         {
             if (nativeLibLoadFailed) { return; }
-            if (constantForceEnabled)
+            if (constantForceEnabled && activeDevice != null)
             {
                 Native.UpdateConstantForce(activeDevice.Value.guidInstance, (int)(force * sensitivity), axisDirections);
             }

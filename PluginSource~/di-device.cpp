@@ -2,7 +2,7 @@
 #include "util.h"
 #include "di-device.h"
 
-DIDevice::DIDevice(LPDIRECTINPUT8 pDI, GUID deviceGuid, DeviceInfo* deviceInfo) {
+DIDevice::DIDevice(LPDIRECTINPUT8 pDI, GUID deviceGuid, const DeviceInfo& deviceInfo) {
    this->pDevice = NULL;
    this->deviceGuid = deviceGuid;
    this->pDI = pDI;
@@ -56,6 +56,10 @@ void DIDevice::DestroyDevice()
       pDevice->Release();
       pDevice = NULL;
    }
+   //SAFE_DELETE_ARRAY(deviceInfo.guidInstance);
+   //SAFE_DELETE_ARRAY(deviceInfo.guidProduct);
+   //SAFE_DELETE_ARRAY(deviceInfo.instanceName);
+   //SAFE_DELETE_ARRAY(deviceInfo.productName);
 }
 
 HRESULT DIDevice::GetDeviceState(FlatJoyState2& state)

@@ -72,11 +72,11 @@ LRESULT _cbDeviceChanged(int code, WPARAM wParam, LPARAM lParam)
       switch (pMsg->wParam)
       {
       case DBT_DEVICEARRIVAL:
-         Debounce(FireDeviceChangedCallback, 1000);
+         FireDeviceChangedCallback();
          break;
 
       case DBT_DEVICEREMOVECOMPLETE:
-         Debounce(FireDeviceChangedCallback, 1000);
+         FireDeviceChangedCallback();
          break;
       }
    }
@@ -114,6 +114,29 @@ DeviceInfo* EnumerateDevices(int &deviceCount)
       DIEDFL_ATTACHEDONLY | DIEDFL_FORCEFEEDBACK
    );
 
+   std::vector<std::string> devicesToRemove;
+   for (auto& device : g_mDeviceInstances) {
+      bool found = false;
+      for (int i = 0; i < g_vDeviceInstances.size(); i++) {
+         if (device.first == std::string(g_vDeviceInstances[i].guidInstance)) {
+            found = true;
+            break;
+         }
+      }
+      if (!found) {
+         devicesToRemove.push_back(device.first);
+      }
+   }
+   for (auto& guid : devicesToRemove) {
+      g_mDeviceInstances[guid]->DestroyDevice();
+      g_mDeviceInstances.erase(guid);
+   }
+
+   ClearDeviceInstances();
+   for (auto& device : g_mDeviceInstances) {
+      g_vDeviceInstances.push_back(device.second->deviceInfo);
+   }
+   
    if (g_vDeviceInstances.size() > 0)
    {
       deviceCount = (int)g_vDeviceInstances.size();
@@ -185,7 +208,7 @@ BOOL CALLBACK _cbEnumDevices(const DIDEVICEINSTANCE* pInst, void* pContext)
       return DIENUM_CONTINUE;
    }
 
-   DIDevice* device = new DIDevice(g_pDI, pInst->guidInstance, &di);
+   DIDevice* device = new DIDevice(g_pDI, pInst->guidInstance, di);
    g_mDeviceInstances[strGuidInstance] = device;
 
    return DIENUM_CONTINUE;
@@ -201,7 +224,9 @@ BOOL CALLBACK _cbEnumFFBDevices(const DIDEVICEINSTANCE* pInst, void* pContext)
    StringFromCLSID(pInst->guidInstance, &guidInstance);
    std::string strGuidInstance = utf16ToUTF8(guidInstance);
 
-   g_mDeviceInstances[strGuidInstance]->deviceInfo->hasFFB = true;
+   if (g_mDeviceInstances.find(strGuidInstance) != g_mDeviceInstances.end()) {
+      g_mDeviceInstances[strGuidInstance]->deviceInfo.hasFFB = true;
+   }
 
    return DIENUM_CONTINUE;
 }
@@ -390,13 +415,6 @@ void FreeDirectInput()
  */
 void ClearDeviceInstances()
 {
-   for (int i = 0; i < g_vDeviceInstances.size(); i++)
-   {
-      delete[] g_vDeviceInstances[i].guidInstance;
-      delete[] g_vDeviceInstances[i].guidProduct;
-      delete[] g_vDeviceInstances[i].instanceName;
-      delete[] g_vDeviceInstances[i].productName;
-   }
    g_vDeviceInstances.clear();
 }
 

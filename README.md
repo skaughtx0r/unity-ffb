@@ -1,7 +1,10 @@
-# Unity Force Feedback
+# Unity Force Feedback Input
 
 This is a native plugin for Unity3D that interfaces with DirectInput in order
 to send Force Feedback Effects to devices.
+
+This branch adds Direct Input to the Unity Input System by way of a custom
+device that reads values from the UnityFFB Direct Input native plugin.
 
 The primary goal of this plugin is to get Force Feedback effects working
 with various steering wheels (Logitech, Fanatec, etc) for my hydroplane

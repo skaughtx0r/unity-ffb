@@ -3,6 +3,8 @@ using System.Runtime.InteropServices;
 using UnityEngine;
 using System.Linq;
 using System.Threading;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace UnityFFB {
     public class Native {
@@ -57,6 +59,8 @@ namespace UnityFFB {
 
             if (Native.StartDirectInput() != 0) { _isInitialized = false; }
 
+            Native.RegisterDeviceChangedCallback(OnDeviceChanged);
+
             _isInitialized = true;
             EnumerateDirectInputDevices();
 
@@ -72,6 +76,7 @@ namespace UnityFFB {
                 _isInitialized = false;
                 _devices = new DeviceInfo[0];
                 Native.StopDirectInput();
+                Native.UnregisterDeviceChangedCallback();
             }
         }
 
@@ -79,10 +84,9 @@ namespace UnityFFB {
         {
             int deviceCount = 0;
             IntPtr ptrDevices = Native.EnumerateDevices(ref deviceCount);
+            _devices = new DeviceInfo[deviceCount];
             if (deviceCount > 0)
             {
-                _devices = new DeviceInfo[deviceCount];
-
                 int deviceSize = Marshal.SizeOf(typeof(DeviceInfo));
                 for (int i = 0; i < deviceCount; i++)
                 {
@@ -102,6 +106,65 @@ namespace UnityFFB {
             }
 
             return true;
+        }
+
+        private static Debouncer debounceDeviceChanged = new Debouncer(1000);
+
+        private static void OnDeviceChanged()
+        {
+            debounceDeviceChanged.Debounce(() => { DetectDeviceChanges(); });
+        } 
+
+        private static void DetectDeviceChanges()
+        {
+            //EnumerateDirectInputDevices();
+            //DirectInputDevice.RegisterDevices();
+        }
+
+    }
+
+    class Debouncer
+    {
+        private List<CancellationTokenSource> StepperCancelTokens = new List<CancellationTokenSource>();
+        private int MillisecondsToWait;
+        private readonly object _lockThis = new object(); // Use a locking object to prevent the debouncer to trigger again while the func is still running
+
+        public Debouncer(int millisecondsToWait = 300)
+        {
+            this.MillisecondsToWait = millisecondsToWait;
+        }
+
+        public void Debounce(Action func)
+        {
+            CancelAllStepperTokens(); // Cancel all api requests;
+            var newTokenSrc = new CancellationTokenSource();
+            lock (_lockThis)
+            {
+                StepperCancelTokens.Add(newTokenSrc);
+            }
+            Task.Delay(MillisecondsToWait, newTokenSrc.Token).ContinueWith(task => // Create new request
+            {
+                if (!newTokenSrc.IsCancellationRequested) // if it hasn't been cancelled
+                {
+                    CancelAllStepperTokens(); // Cancel any that remain (there shouldn't be any)
+                    StepperCancelTokens = new List<CancellationTokenSource>(); // set to new list
+                    lock (_lockThis)
+                    {
+                        func(); // run
+                    }
+                }
+            }, TaskScheduler.FromCurrentSynchronizationContext());
+        }
+
+        private void CancelAllStepperTokens()
+        {
+            foreach (var token in StepperCancelTokens)
+            {
+                if (!token.IsCancellationRequested)
+                {
+                    token.Cancel();
+                }
+            }
         }
     }
 }

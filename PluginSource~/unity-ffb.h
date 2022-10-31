@@ -7,8 +7,6 @@
 #define UNITYFFB_API __declspec(dllimport)
 #endif
 
-#define SAFE_DELETE(p)  { if(p) { delete (p);     (p)=NULL; } }
-
 LPDIRECTINPUT8          g_pDI = NULL;
 BOOL                    g_bActive = TRUE;
 DWORD                   g_dwNumForceFeedbackAxis = 0;

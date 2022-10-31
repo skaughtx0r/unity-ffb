@@ -6,7 +6,7 @@ class DIDevice
 public:
    LPDIRECTINPUT8 pDI;
    GUID deviceGuid;
-   DeviceInfo* deviceInfo;
+   DeviceInfo deviceInfo;
    HWND hWnd;
    DWORD _axisCount;
    std::vector<DeviceAxisInfo> vDeviceAxes;
@@ -16,7 +16,7 @@ public:
 
    LPDIRECTINPUTDEVICE8 pDevice;
 
-   DIDevice(LPDIRECTINPUT8 pDI, GUID deviceGuid, DeviceInfo* deviceInfo);
+   DIDevice(LPDIRECTINPUT8 pDI, GUID deviceGuid, const DeviceInfo& deviceInfo);
 
    HRESULT CreateDevice();
    void DestroyDevice();
