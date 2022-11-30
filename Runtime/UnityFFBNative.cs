@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace UnityFFB {
     public class Native {
-        
+
         #if UNITY_STANDALONE_WIN
         private const string FFBDLL = "UnityFFB";
         [DllImport(FFBDLL)] public static extern int    StartDirectInput();
@@ -66,11 +66,15 @@ namespace UnityFFB {
 
             Debug.Log($"[UnityFFB] Initialized! {_devices.Count()} Devices");
             return _isInitialized;
+#else
+            _isInitialized = false;
+            return false;
 #endif
         }
 
         public static void DeInitialize()
         {
+#if UNITY_STANDALONE_WIN
             if (_isInitialized)
             {
                 _isInitialized = false;
@@ -78,10 +82,12 @@ namespace UnityFFB {
                 Native.StopDirectInput();
                 Native.UnregisterDeviceChangedCallback();
             }
+#endif
         }
 
         private static void EnumerateDirectInputDevices()
         {
+#if UNITY_STANDALONE_WIN
             int deviceCount = 0;
             IntPtr ptrDevices = Native.EnumerateDevices(ref deviceCount);
             _devices = new DeviceInfo[deviceCount];
@@ -94,10 +100,12 @@ namespace UnityFFB {
                     _devices[i] = Marshal.PtrToStructure<DeviceInfo>(pCurrent);
                 }
             }
+#endif
         }
 
         public static bool CreateDevice(DeviceInfo device)
         {
+#if UNITY_STANDALONE_WIN
             int hr = Native.CreateDevice(device.guidInstance);
             if (hr != 0)
             {
@@ -106,6 +114,9 @@ namespace UnityFFB {
             }
 
             return true;
+#else
+            return false;
+#endif
         }
 
         private static Debouncer debounceDeviceChanged = new Debouncer(1000);
@@ -113,7 +124,7 @@ namespace UnityFFB {
         private static void OnDeviceChanged()
         {
             debounceDeviceChanged.Debounce(() => { DetectDeviceChanges(); });
-        } 
+        }
 
         private static void DetectDeviceChanges()
         {

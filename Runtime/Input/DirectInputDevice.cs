@@ -152,6 +152,7 @@ namespace UnityFFB
 
         public void OnUpdate()
         {
+#if UNITY_STANDALONE_WIN
             FlatJoyState2 state = new FlatJoyState2();
             int hresult = Native.GetDeviceState(device.description.serial, out state); // Poll the DirectInput Device
             if (hresult == 0)
@@ -162,6 +163,7 @@ namespace UnityFFB
                     InputSystem.QueueStateEvent(this, state);
                 }
             }
+#endif
         }
     }
 
