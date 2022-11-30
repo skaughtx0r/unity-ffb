@@ -128,8 +128,8 @@ namespace UnityFFB {
 
         private static void DetectDeviceChanges()
         {
-            //EnumerateDirectInputDevices();
-            //DirectInputDevice.RegisterDevices();
+            EnumerateDirectInputDevices();
+            DirectInputDevice.RegisterDevices();
         }
 
     }
