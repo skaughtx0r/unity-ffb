@@ -145,10 +145,34 @@ void FlattenDIJOYSTATE2(DIJOYSTATE2& deviceState, FlatJoyState2& state) {
 
    for (int i = 0; i < 4; i++) { // In banks of 4, shift in the sate of each DPAD 0-16 bits
       switch (deviceState.rgdwPOV[i]) {
-      case 0:     state.rgdwPOV |= (byte)(1 << ((i + 1) * 0)); break; // dpad[i]/up, bit = 0     shift into value at stride (i+1) * DPADButton
-      case 18000: state.rgdwPOV |= (byte)(1 << ((i + 1) * 1)); break; // dpad[i]/down, bit = 1
-      case 27000: state.rgdwPOV |= (byte)(1 << ((i + 1) * 2)); break; // dpad[i]/left, bit = 2
-      case 9000:  state.rgdwPOV |= (byte)(1 << ((i + 1) * 3)); break; // dpad[i]/right, bit = 3
+      case 0:
+         state.rgdwPOV |= (byte)(1 << ((i + 1) * 0)); // dpad[i]/up, bit = 0     shift into value at stride (i+1) * DPADButton
+         break;
+      case 4500:
+         state.rgdwPOV |= (byte)(1 << ((i + 1) * 3)); // dpad[i]/right, bit = 3
+         state.rgdwPOV |= (byte)(1 << ((i + 1) * 0)); // dpad[i]/up, bit = 0
+         break;
+      case 9000:
+         state.rgdwPOV |= (byte)(1 << ((i + 1) * 3)); // dpad[i]/right, bit = 3
+         break;
+      case 13500:
+         state.rgdwPOV |= (byte)(1 << ((i + 1) * 3)); // dpad[i]/right, bit = 3
+         state.rgdwPOV |= (byte)(1 << ((i + 1) * 1)); // dpad[i]/down, bit = 1
+         break;
+      case 18000:
+         state.rgdwPOV |= (byte)(1 << ((i + 1) * 1)); // dpad[i]/down, bit = 1
+         break;
+      case 22500:
+         state.rgdwPOV |= (byte)(1 << ((i + 1) * 2)); // dpad[i]/left, bit = 2
+         state.rgdwPOV |= (byte)(1 << ((i + 1) * 1)); // dpad[i]/down, bit = 1
+         break;
+      case 27000:
+         state.rgdwPOV |= (byte)(1 << ((i + 1) * 2)); // dpad[i]/left, bit = 2
+         break;
+      case 31500:
+         state.rgdwPOV |= (byte)(1 << ((i + 1) * 2)); // dpad[i]/left, bit = 2
+         state.rgdwPOV |= (byte)(1 << ((i + 1) * 0)); // dpad[i]/up, bit = 0
+         break;
       }
    }
 }
