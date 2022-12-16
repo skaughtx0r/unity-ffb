@@ -8,39 +8,40 @@ using UnityEngine.InputSystem.Controls;
 using UnityEngine.InputSystem.Layouts;
 using UnityEngine.InputSystem.LowLevel;
 using UnityEngine.InputSystem.Utilities;
+using System.Collections.Generic;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
 
 namespace UnityFFB
 {
-#if UNITY_EDITOR
-    [InitializeOnLoad]
-#endif
+//#if UNITY_EDITOR
+//    [InitializeOnLoad]
+//#endif
     [InputControlLayout(stateType = typeof(FlatJoyState2))]
     public class DirectInputDevice : InputDevice, IInputUpdateCallbackReceiver
     {
 
-        FlatJoyState2 lastState;
+        public FlatJoyState2 lastState;
+        public static List<InputDeviceDescription> removedDevices = new List<InputDeviceDescription>();
 
-#if UNITY_EDITOR
-        static DirectInputDevice()
+        //#if UNITY_EDITOR
+        //        static DirectInputDevice()
+        //        {
+        //            Initialize();
+        //        }
+        //#endif
+
+        //        [RuntimeInitializeOnLoadMethod]
+        public static void Initialize()
         {
-            Initialize();
-        }
-#endif
-
-        [RuntimeInitializeOnLoadMethod]
-        private static void Initialize()
-        {
-
             DirectInputManager.Initialize();
-
             RegisterDevices();
         }
 
         public static void RegisterDevices()
         {
+            removedDevices.Clear();
             InputSystem.Update();
 
             // Remove Disconnected Direct Input Devices
@@ -59,6 +60,7 @@ namespace UnityFFB
                     }
                     if (!deviceFound)
                     {
+                        removedDevices.Add(dev.description);
                         InputSystem.RemoveDevice(dev);
                     }
                 }
@@ -79,6 +81,7 @@ namespace UnityFFB
                             VidPid vidpid = JsonUtility.FromJson<VidPid>(dev.description.capabilities);
                             if (vidpid.vendorId == di.vendorId && vidpid.productId == di.productId)
                             {
+                                removedDevices.Add(dev.description);
                                 InputSystem.RemoveDevice(dev);
                             }
                         }
@@ -116,16 +119,21 @@ namespace UnityFFB
 
         public static void Deinitialize()
         {
+            List<InputDevice> devicesToRemove = new List<InputDevice>();
             foreach (InputDevice dev in InputSystem.devices)
             {
                 if (dev.description.interfaceName == "DirectInput")
                 {
-                    InputSystem.RemoveDevice(dev);
+                    devicesToRemove.Add(dev);
                 }
-                else if (dev.description.interfaceName == "HID")
-                {
-                    InputSystem.EnableDevice(dev);
-                }
+            }
+            foreach (InputDevice dev in devicesToRemove)
+            {
+                InputSystem.RemoveDevice(dev);
+            }
+            foreach (InputDeviceDescription desc in removedDevices)
+            {
+                InputSystem.AddDevice(desc);
             }
             DirectInputManager.DeInitialize();
             InputSystem.Update();

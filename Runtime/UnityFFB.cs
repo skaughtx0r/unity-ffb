@@ -50,6 +50,7 @@ namespace UnityFFB
         void Awake()
         {
             instance = this;
+            DirectInputDevice.Initialize();
 #if UNITY_STANDALONE_WIN
             if (enableOnAwake)
             {
@@ -121,6 +122,7 @@ namespace UnityFFB
             activeDevice = null;
             axes = new DeviceAxisInfo[0];
             springConditions = new DICondition[0];
+            DirectInputDevice.Deinitialize();
 #endif
         }
 
