@@ -236,7 +236,6 @@ HRESULT DIDevice::AddFFBEffect(Effects::Type effectType) {
          hr = S_OK;
          mEffects[effectType] = pEffect;
          mDIEFFECTs[effectType] = effect;
-         pEffect->Start(1, 0);
       }
    }
 
@@ -312,8 +311,7 @@ HRESULT DIDevice::UpdateConstantForce(LONG magnitude, LONG* directions)
       for (int i = 0; i < axisCount; i++) {
          effect.rglDirection[i] = directions[i];
       }
-      effect.cbTypeSpecificParams = sizeof(DICONSTANTFORCE);
-      effect.lpvTypeSpecificParams = &constantForce;
+      ((DICONSTANTFORCE*)effect.lpvTypeSpecificParams)->lMagnitude = magnitude;
 
       hr = pEffect->SetParameters(&effect, DIEP_DIRECTION | DIEP_TYPESPECIFICPARAMS | DIEP_START);
    }

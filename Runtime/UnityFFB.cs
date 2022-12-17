@@ -38,6 +38,8 @@ namespace UnityFFB
         public bool constantForceEnabled { get; private set; }
         public bool springForceEnabled { get; private set; }
 
+        private bool effectsEnabled = false;
+
         public DeviceInfo[] devices = new DeviceInfo[0];
 
         public DeviceInfo? activeDevice = null;
@@ -63,7 +65,7 @@ namespace UnityFFB
         private void FixedUpdate()
         {
             if (nativeLibLoadFailed) { return; }
-            if (constantForceEnabled && activeDevice != null)
+            if (effectsEnabled && constantForceEnabled && activeDevice != null)
             {
                 Native.UpdateConstantForce(activeDevice.Value.guidInstance, (int)(force * sensitivity), axisDirections);
             }
@@ -118,11 +120,11 @@ namespace UnityFFB
             }
             ffbEnabled = false;
             constantForceEnabled = false;
+            effectsEnabled = false;
             devices = new DeviceInfo[0];
             activeDevice = null;
             axes = new DeviceAxisInfo[0];
             springConditions = new DICondition[0];
-            DirectInputDevice.Deinitialize();
 #endif
         }
 
@@ -194,7 +196,11 @@ namespace UnityFFB
                                 springConditions[i].positiveSaturation = 10000;
                             }
                             hresult = Native.UpdateSpring(device.guidInstance, springConditions);
-                            Debug.LogError($"[UnityFFB] UpdateSpringForce Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");
+                            if (hresult != 0)
+                            {
+                                Debug.LogError($"[UnityFFB] UpdateSpringForce Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");
+                            }
+                            springForceEnabled = true;
                         }
                         else
                         {
@@ -234,8 +240,8 @@ namespace UnityFFB
             if (nativeLibLoadFailed) { return; }
             try
             {
-                Native.StartAllFFBEffects();
-                constantForceEnabled = true;
+                Native.StartAllFFBEffects(activeDevice.Value.guidInstance);
+                effectsEnabled = true;
             }
             catch (DllNotFoundException e)
             {
@@ -250,8 +256,8 @@ namespace UnityFFB
             if (nativeLibLoadFailed) { return; }
             try
             {
-                Native.StopAllFFBEffects();
-                constantForceEnabled = false;
+                Native.StopAllFFBEffects(activeDevice.Value.guidInstance);
+                effectsEnabled = false;
             }
             catch (DllNotFoundException e)
             {
@@ -274,6 +280,7 @@ namespace UnityFFB
         public void OnApplicationQuit()
         {
             DisableForceFeedback();
+            DirectInputDevice.Deinitialize();
         }
 #endif
     }

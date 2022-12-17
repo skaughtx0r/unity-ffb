@@ -24,8 +24,8 @@ namespace UnityFFB {
         [DllImport(FFBDLL)] public static extern int    UpdateConstantForce(string guidInstance, int magnitude, int[] directions);
         [DllImport(FFBDLL)] public static extern int    UpdateSpring(string guidInstance, DICondition[] conditions);
         [DllImport(FFBDLL)] public static extern int    SetAutoCenter(string guidInstance, bool autoCenter);
-        [DllImport(FFBDLL)] public static extern void   StartAllFFBEffects();
-        [DllImport(FFBDLL)] public static extern void   StopAllFFBEffects();
+        [DllImport(FFBDLL)] public static extern void   StartAllFFBEffects(string guidInstance);
+        [DllImport(FFBDLL)] public static extern void   StopAllFFBEffects(string guidInstance);
         [DllImport(FFBDLL)] public static extern void   StopDirectInput();
 
         [UnmanagedFunctionPointer(CallingConvention.StdCall)] public delegate void DeviceChangedCallback();
