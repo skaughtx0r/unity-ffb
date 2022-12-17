@@ -156,6 +156,13 @@ namespace UnityFFB
             base.OnRemoved();
             if (current == this)
                 current = null;
+            Debug.Log($"{this} Removed!");
+        }
+
+        protected override void OnAdded()
+        {
+            base.OnAdded();
+            Debug.Log($"{this} Added!");
         }
 
         public void OnUpdate()
@@ -165,11 +172,8 @@ namespace UnityFFB
             int hresult = Native.GetDeviceState(device.description.serial, out state); // Poll the DirectInput Device
             if (hresult == 0)
             {
-                if (!lastState.Equals(state))
-                {
-                    lastState = state;
-                    InputSystem.QueueStateEvent(this, state);
-                }
+                lastState = state;
+                InputSystem.QueueStateEvent(this, state);
             }
 #endif
         }
