@@ -53,7 +53,7 @@ namespace UnityFFB
                     foreach (DeviceInfo di in DirectInputManager.devices)
                     {
                         VidPid vidpid = JsonUtility.FromJson<VidPid>(dev.description.capabilities);
-                        if (vidpid.vendorId == di.vendorId && vidpid.productId == di.productId)
+                        if (vidpid.vendorId == di.vendorId && vidpid.productId == di.productId && dev.description.serial == di.guidInstance)
                         {
                             deviceFound = true;
                         }
@@ -71,6 +71,7 @@ namespace UnityFFB
             // Remove Duplicate Input System Direct Input Devices
             foreach (DeviceInfo di in DirectInputManager.devices)
             {
+                Debug.Log($"Found Direct Input Device: {di.productName} - {di.instanceName} - {di.guidInstance}");
                 bool skip = false;
                 foreach (InputDevice dev in InputSystem.devices)
                 {
@@ -88,7 +89,7 @@ namespace UnityFFB
                         else if (dev.description.interfaceName == "DirectInput")
                         {
                             VidPid vidpid = JsonUtility.FromJson<VidPid>(dev.description.capabilities);
-                            if (vidpid.vendorId == di.vendorId && vidpid.productId == di.productId)
+                            if (vidpid.vendorId == di.vendorId && vidpid.productId == di.productId && dev.description.serial == di.guidInstance)
                             {
                                 skip = true;
                             }
@@ -113,6 +114,7 @@ namespace UnityFFB
                         serial = di.guidInstance,
                         capabilities = $@"{{""vendorId"":{di.vendorId},""productId"":{di.productId},""hasFFB"":{hasFFB}}}",
                     });
+                    Debug.Log($"Added Device: {di.productName} - {di.instanceName} - {di.guidInstance}");
                 }
             }
         }
