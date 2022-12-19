@@ -98,9 +98,11 @@ DeviceAxisInfo* DIDevice::EnumerateFFBAxes(int &axisCount)
 
 BOOL CALLBACK DIDevice::_cbEnumFFBAxes(const DIDEVICEOBJECTINSTANCE* pdidoi, void* pContext)
 {
+   DIDevice* me = (DIDevice*)pContext;
+   std::string strName = utf16ToUTF8(pdidoi->tszName);
+
    if ((pdidoi->dwFlags & DIDOI_FFACTUATOR) != 0)
    {
-      DIDevice* me = (DIDevice*)pContext;
       me->_axisCount++;
 
       DeviceAxisInfo dai = { 0 };
@@ -108,8 +110,7 @@ BOOL CALLBACK DIDevice::_cbEnumFFBAxes(const DIDEVICEOBJECTINSTANCE* pdidoi, voi
       OLECHAR* guidType;
       StringFromCLSID(pdidoi->guidType, &guidType);
 
-      std::string strGuidType = utf16ToUTF8(guidType);
-      std::string strName = utf16ToUTF8(pdidoi->tszName);
+      std::string strGuidType = utf16ToUTF8(guidType);   
 
       dai.guidType = new char[strGuidType.length() + 1];
       dai.name = new char[strName.length() + 1];

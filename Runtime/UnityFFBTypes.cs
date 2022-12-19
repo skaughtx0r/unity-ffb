@@ -124,11 +124,9 @@ namespace UnityFFB {
     /// and can be populated directly by the Native UnityFFB plugin.
     /// See https://docs.microsoft.com/en-us/previous-versions/windows/desktop/ee416628(v=vs.85)
     /// </summary>
-    [StructLayout(LayoutKind.Explicit, Size = 81)]
+    [StructLayout(LayoutKind.Sequential)]
     public struct FlatJoyState2 : IInputStateTypeInfo
     {
-        public FourCC format => new FourCC('U', 'F', 'F', 'B');
-
         [InputControl(name = "Button000", layout = "Button", bit = 0, displayName = "0")]
         [InputControl(name = "Button001", layout = "Button", bit = 1, displayName = "1")]
         [InputControl(name = "Button002", layout = "Button", bit = 2, displayName = "2")]
@@ -193,8 +191,8 @@ namespace UnityFFB {
         [InputControl(name = "Button061", layout = "Button", bit = 61, displayName = "61")]
         [InputControl(name = "Button062", layout = "Button", bit = 62, displayName = "62")]
         [InputControl(name = "Button063", layout = "Button", bit = 63, displayName = "63")]
-        [FieldOffset(0)]
         public UInt64 buttonsA; // Buttons seperated into banks of 64-Bits to fit into Unsigned 64-bit integer
+
         [InputControl(name = "Button064", layout = "Button", bit = 0, displayName = "64")]
         [InputControl(name = "Button065", layout = "Button", bit = 1, displayName = "65")]
         [InputControl(name = "Button066", layout = "Button", bit = 2, displayName = "66")]
@@ -259,121 +257,121 @@ namespace UnityFFB {
         [InputControl(name = "Button125", layout = "Button", bit = 61, displayName = "125")]
         [InputControl(name = "Button126", layout = "Button", bit = 62, displayName = "126")]
         [InputControl(name = "Button127", layout = "Button", bit = 63, displayName = "127")]
-        [FieldOffset(8)]
         public UInt64 buttonsB; // Buttons seperated into banks of 64-Bits to fit into Unsigned 64-bit integer
 
+
         [InputControl(name = "X", layout = "Axis", displayName = "X")]
-        [FieldOffset(16)]
         public UInt16 lX; // X-axis
+
         [InputControl(name = "Y", layout = "Axis", displayName = "Y")]
-        [FieldOffset(18)]
         public UInt16 lY; // Y-axis
+
         [InputControl(name = "Z", layout = "Axis", displayName = "Z")]
-        [FieldOffset(20)]
         public UInt16 lZ; // Z-axis
+
                           // rglSlider Broken out
                           // // LONG rglSlider[2];
         [InputControl(name = "U", layout = "Axis", displayName = "U")]
-        [FieldOffset(22)]
         public UInt16 lU; // U-axis
+
         [InputControl(name = "V", layout = "Axis", displayName = "V")]
-        [FieldOffset(24)]
         public UInt16 lV; // V-axis
 
+
         [InputControl(name = "RX", layout = "Axis", displayName = "X Rotation")]
-        [FieldOffset(26)]
         public UInt16 lRx; // X-axis rotation
+
         [InputControl(name = "RY", layout = "Axis", displayName = "Y Rotation")]
-        [FieldOffset(28)]
         public UInt16 lRy; // Y-axis rotation
+
         [InputControl(name = "RZ", layout = "Axis", displayName = "Z Rotation")]
-        [FieldOffset(30)]
         public UInt16 lRz; // Z-axis rotation
 
+
         [InputControl(name = "VX", layout = "Axis", displayName = "X Velocity")]
-        [FieldOffset(32)]
         public UInt16 lVX; // X-axis velocity
+
         [InputControl(name = "VY", layout = "Axis", displayName = "Y Velocity")]
-        [FieldOffset(34)]
         public UInt16 lVY; // Y-axis velocity
+
         [InputControl(name = "VZ", layout = "Axis", displayName = "Z Velocity")]
-        [FieldOffset(36)]
         public UInt16 lVZ; // Z-axis velocity
+
                            // rglVSlider Broken out
                            // // LONG rglVSlider[2]; // Extra axis velocities
         [InputControl(name = "VU", layout = "Axis", displayName = "U Velocity")]
-        [FieldOffset(38)]
         public UInt16 lVU; // U-axis velocity
+
         [InputControl(name = "VV", layout = "Axis", displayName = "V Velocity")]
-        [FieldOffset(40)]
         public UInt16 lVV; // V-axis velocity
 
+
         [InputControl(name = "VRX", layout = "Axis", displayName = "X Angular Velocity")]
-        [FieldOffset(42)]
         public UInt16 lVRx; // X-axis angular velocity
+
         [InputControl(name = "VRY", layout = "Axis", displayName = "Y Angular Velocity")]
-        [FieldOffset(44)]
         public UInt16 lVRy; // Y-axis angular velocity
+
         [InputControl(name = "VRZ", layout = "Axis", displayName = "Z Angular Velocity")]
-        [FieldOffset(46)]
         public UInt16 lVRz; // Z-axis angular velocity
 
+
         [InputControl(name = "AX", layout = "Axis", displayName = "X Acceleration")]
-        [FieldOffset(48)]
         public UInt16 lAX; // X-axis acceleration
+
         [InputControl(name = "AY", layout = "Axis", displayName = "Y Acceleration")]
-        [FieldOffset(50)]
         public UInt16 lAY; // Y-axis acceleration
+
         [InputControl(name = "AZ", layout = "Axis", displayName = "Z Acceleration")]
-        [FieldOffset(52)]
         public UInt16 lAZ; // Z-axis acceleration
+
                            // rglASlider Broken out
                            // // LONG rglASlider[2]; // Extra axis accelerations
         [InputControl(name = "AU", layout = "Axis", displayName = "U Acceleration")]
-        [FieldOffset(54)]
         public UInt16 lAU; // U-axis acceleration
+
         [InputControl(name = "AV", layout = "Axis", displayName = "V Acceleration")]
-        [FieldOffset(56)]
         public UInt16 lAV; // V-axis acceleration
 
+
         [InputControl(name = "ARX", layout = "Axis", displayName = "X Angular Acceleration")]
-        [FieldOffset(58)]
         public UInt16 lARx; // X-axis angular acceleration
+
         [InputControl(name = "ARY", layout = "Axis", displayName = "Y Angular Acceleration")]
-        [FieldOffset(60)]
         public UInt16 lARy; // Y-axis angular acceleration
+
         [InputControl(name = "ARZ", layout = "Axis", displayName = "Z Angular Acceleration")]
-        [FieldOffset(62)]
         public UInt16 lARz; // Z-axis angular acceleration
 
+
         [InputControl(name = "AFX", layout = "Axis", displayName = "X Force")]
-        [FieldOffset(64)]
         public UInt16 lFX; // X-axis force
+
         [InputControl(name = "AFY", layout = "Axis", displayName = "Y Force")]
-        [FieldOffset(66)]
         public UInt16 lFY; // Y-axis force
+
         [InputControl(name = "AFZ", layout = "Axis", displayName = "Z Force")]
-        [FieldOffset(68)]
         public UInt16 lFZ; // Z-axis force
+
                            // rglFSlider Broken out
                            // // LONG rglFSlider[2]; // Extra axis forces
         [InputControl(name = "AFU", layout = "Axis", displayName = "U Force")]
-        [FieldOffset(70)]
         public UInt16 lFU; // U-axis force
+
         [InputControl(name = "AFV", layout = "Axis", displayName = "V Force")]
-        [FieldOffset(72)]
         public UInt16 lFV; // V-axis force
 
 
+
         [InputControl(name = "FRX", layout = "Axis", displayName = "X Torque")]
-        [FieldOffset(74)]
         public UInt16 lFRx; // X-axis torque
+
         [InputControl(name = "FRY", layout = "Axis", displayName = "Y Torque")]
-        [FieldOffset(76)]
         public UInt16 lFRy; // Y-axis torque
+
         [InputControl(name = "FRZ", layout = "Axis", displayName = "Z Torque")]
-        [FieldOffset(78)]
         public UInt16 lFRz; // Z-axis torque
+
 
         // rgdwPOV Broken out
         // DWORD rgdwPOV[4]; // 4 PoV Hats
@@ -397,7 +395,9 @@ namespace UnityFFB {
         [InputControl(name = "dpad3/down", bit = 13, displayName = "Down")]
         [InputControl(name = "dpad3/left", bit = 14, displayName = "Left")]
         [InputControl(name = "dpad3/right", bit = 15, displayName = "Right")]
-        [FieldOffset(80)]
         public UInt16 rgdwPOV; // Store each DPAD in chunks of 4 bits inside 16-bit short     
+
+
+        public FourCC format => new FourCC('U', 'F', 'F', 'B');
     }
 }
