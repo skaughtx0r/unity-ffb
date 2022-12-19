@@ -228,8 +228,11 @@ namespace UnityFFB
             if (nativeLibLoadFailed) { return; }
             if (constantForceEnabled)
             {
-                int hresult = Native.UpdateEffectGain(activeDevice.Value.guidInstance, EffectsType.ConstantForce, gainPercent);
-                Debug.LogError($"[UnityFFB] UpdateEffectGain Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");
+                if (activeDevice != null)
+                {
+                    int hresult = Native.UpdateEffectGain(activeDevice.Value.guidInstance, EffectsType.ConstantForce, gainPercent);
+                    Debug.LogError($"[UnityFFB] UpdateEffectGain Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");
+                }
             }
 #endif
         }
@@ -240,7 +243,10 @@ namespace UnityFFB
             if (nativeLibLoadFailed) { return; }
             try
             {
-                Native.StartAllFFBEffects(activeDevice.Value.guidInstance);
+                if (activeDevice != null)
+                {
+                    Native.StartAllFFBEffects(activeDevice.Value.guidInstance);
+                }
                 effectsEnabled = true;
             }
             catch (DllNotFoundException e)
@@ -256,7 +262,10 @@ namespace UnityFFB
             if (nativeLibLoadFailed) { return; }
             try
             {
-                Native.StopAllFFBEffects(activeDevice.Value.guidInstance);
+                if (activeDevice != null)
+                {
+                    Native.StopAllFFBEffects(activeDevice.Value.guidInstance);
+                }
                 effectsEnabled = false;
             }
             catch (DllNotFoundException e)
