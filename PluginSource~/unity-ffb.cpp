@@ -7,6 +7,7 @@
 #include "unity-ffb.h"
 #include "util.h"
 #include "di-device.h"
+// #include <fstream>
 
 std::map<std::string, DIDevice*> g_mDeviceInstances;
 std::vector<DeviceInfo> g_vDeviceInstances;
@@ -115,6 +116,8 @@ DeviceInfo* EnumerateDevices(int &deviceCount)
    );
 
    std::vector<std::string> devicesToRemove;
+
+   // Remove Unplugged devices
    for (auto& device : g_mDeviceInstances) {
       bool found = false;
       for (int i = 0; i < g_vDeviceInstances.size(); i++) {
@@ -127,13 +130,18 @@ DeviceInfo* EnumerateDevices(int &deviceCount)
          devicesToRemove.push_back(device.first);
       }
    }
+
+   // Purge the devices to be removed
    for (auto& guid : devicesToRemove) {
       g_mDeviceInstances[guid]->DestroyDevice();
       g_mDeviceInstances.erase(guid);
    }
 
    ClearDeviceInstances();
+   // std::ofstream log_file("unityffb.log", std::ios_base::out | std::ios_base::app);
+   // log_file << std::endl << "Final Direct Input Devices:" << std::endl;
    for (auto& device : g_mDeviceInstances) {
+      // log_file << device.second->deviceInfo.instanceName << ": " << device.second->deviceInfo.guidInstance << std::endl;
       g_vDeviceInstances.push_back(device.second->deviceInfo);
    }
    
@@ -203,6 +211,10 @@ BOOL CALLBACK _cbEnumDevices(const DIDEVICEINSTANCE* pInst, void* pContext)
    strcpy_s(di.productName, strProductName.length() + 1, strProductName.c_str());
 
    g_vDeviceInstances.push_back(di);
+
+   if (IsDuplicateDevice(pInst)) {
+      return DIENUM_CONTINUE;
+   }
 
    if (g_mDeviceInstances.find(strGuidInstance) != g_mDeviceInstances.end()) {
       return DIENUM_CONTINUE;
@@ -434,4 +446,35 @@ void StopDirectInput()
    g_mDeviceInstances.clear();
    ClearDeviceInstances();
    FreeDirectInput();
+}
+
+bool IsDuplicateDevice(const DIDEVICEINSTANCE *pInst) {
+   HRESULT hr;
+   LPDIRECTINPUTDEVICE8 DIDevice = nullptr;
+   if (FAILED(hr = g_pDI->CreateDevice(pInst->guidInstance, &DIDevice, NULL))) { return true; } // L"CreateDevice failed! 0x%08x", hr
+
+   DIPROPGUIDANDPATH GUIDPath;
+   GUIDPath.diph.dwSize = sizeof(DIPROPGUIDANDPATH);
+   GUIDPath.diph.dwHeaderSize = sizeof(DIPROPHEADER);
+   GUIDPath.diph.dwObj = 0;
+   GUIDPath.diph.dwHow = DIPH_DEVICE;
+   if (FAILED(hr = DIDevice->GetProperty(DIPROP_GUIDANDPATH, &GUIDPath.diph))) { DIDevice->Release(); return true; } // L"GetProperty failed! Failed to get symbolic path for device 0x%08x", hr
+   DIDevice->Release();
+
+   std::string strInstanceName = utf16ToUTF8(pInst->tszInstanceName);
+   std::string hidPath = utf16ToUTF8(GUIDPath.wszPath);
+   OLECHAR* guidInstance;
+   StringFromCLSID(pInst->guidInstance, &guidInstance);
+   std::string strGuidInstance = utf16ToUTF8(guidInstance);
+
+   // std::ofstream log_file("unityffb.log", std::ios_base::out | std::ios_base::app);
+   // log_file << strInstanceName << ": " << strGuidInstance << ": " << hidPath << std::endl;
+
+   // col01 is primary device, col02 is secondary, so col02 is the duplicate.
+   if (wcsstr(GUIDPath.wszPath, L"&col02") != 0) {
+      return true;
+   }
+   else {
+      return false;
+   }
 }
