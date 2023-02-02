@@ -72,6 +72,7 @@ namespace UnityFFB
             foreach (DeviceInfo di in DirectInputManager.devices)
             {
                 bool deviceFound = false;
+                InputSystem.Update();
                 foreach (InputDevice dev in InputSystem.devices)
                 {
                     if (dev != null)
@@ -153,6 +154,11 @@ namespace UnityFFB
         {
             base.OnAdded();
             Debug.Log($"{this} Added!");
+            if (this.description.interfaceName == "HID")
+            {
+                Debug.LogError($"Removing {this} because interfaceName == HID");
+                InputSystem.RemoveDevice(this);
+            }
         }
 
         public void OnUpdate()
