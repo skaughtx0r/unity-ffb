@@ -250,7 +250,10 @@ namespace UnityFFB
             if (constantForceEnabled)
             {
                 int hresult = UnityFFBNative.UpdateEffectGain(EffectsType.ConstantForce, gainPercent);
-                Debug.LogError($"[UnityFFB] UpdateEffectGain Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");
+                if (hresult != 0)
+                {
+                    Debug.LogError($"[UnityFFB] UpdateEffectGain Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");
+                }
             }
 #endif
         }
