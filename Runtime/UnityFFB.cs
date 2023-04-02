@@ -215,7 +215,10 @@ namespace UnityFFB
                                     springConditions[i].positiveSaturation = 10000;
                                 }
                                 hresult = UnityFFBNative.UpdateSpring(springConditions);
-                                Debug.LogError($"[UnityFFB] UpdateSpringForce Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");
+                                if (hresult != 0)
+                                {
+                                    Debug.LogError($"[UnityFFB] UpdateSpringForce Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");
+                                }
                             }
                             else
                             {
