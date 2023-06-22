@@ -16,6 +16,8 @@ namespace UnityFFB {
         [DllImport(FFBDLL)] public static extern IntPtr EnumerateFFBAxes(string guidInstance, ref int axisCount);
         [DllImport(FFBDLL)] public static extern int    CreateDevice(string guidInstance);
         [DllImport(FFBDLL)] public static extern void   DestroyDevice(string guidInstance);
+        [DllImport(FFBDLL)] public static extern int    Acquire(string guidInstance);
+        [DllImport(FFBDLL)] public static extern int    Unacquire(string guidInstance);
         [DllImport(FFBDLL)] public static extern int    AddFFBEffect(string guidInstance, EffectsType effectType);
         [DllImport(FFBDLL)] public static extern int    RemoveFFBEffect(string guidInstance, EffectsType effectType);
         [DllImport(FFBDLL)] public static extern void   RemoveAllFFBEffects(string guidInstance);

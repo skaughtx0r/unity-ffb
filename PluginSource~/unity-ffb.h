@@ -26,6 +26,8 @@ extern "C"
    UNITYFFB_API DeviceInfo* EnumerateDevices(int &deviceCount);
    UNITYFFB_API HRESULT CreateDevice(LPCSTR guidInstance);
    UNITYFFB_API void DestroyDevice(LPCSTR guidInstance);
+   UNITYFFB_API HRESULT Acquire(LPCSTR guidInstance);
+   UNITYFFB_API HRESULT Unacquire(LPCSTR guidInstance);
    UNITYFFB_API DeviceAxisInfo* EnumerateFFBAxes(LPCSTR guidInstance, int &axisCount);
    UNITYFFB_API HRESULT AddFFBEffect(LPCSTR guidInstance, Effects::Type effectType);
    UNITYFFB_API HRESULT UpdateEffectGain(LPCSTR guidInstance, Effects::Type effectType, float gainPercent);

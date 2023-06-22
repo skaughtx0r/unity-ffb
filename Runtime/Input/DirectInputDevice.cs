@@ -18,12 +18,14 @@ namespace UnityFFB
 //#if UNITY_EDITOR
 //    [InitializeOnLoad]
 //#endif
-    [InputControlLayout(stateType = typeof(FlatJoyState2))]
+    [InputControlLayout(stateType = typeof(FlatJoyState2), canRunInBackground = true)]
     public class DirectInputDevice : InputDevice, IInputUpdateCallbackReceiver
     {
 
         public FlatJoyState2 lastState;
         public static List<InputDeviceDescription> removedDevices = new List<InputDeviceDescription>();
+
+        bool prevFocused = true;
 
         //#if UNITY_EDITOR
         //        static DirectInputDevice()
@@ -164,6 +166,19 @@ namespace UnityFFB
         public void OnUpdate()
         {
 #if UNITY_STANDALONE_WIN
+            if (Application.isFocused != prevFocused) {
+                prevFocused = Application.isFocused;
+                if (prevFocused) {
+                    int hr = Native.Unacquire(device.description.serial);
+                    if (hr != 0) {
+                        Debug.LogError($"[UnityFFB] Unacquire Failed: 0x{hr.ToString("x")} {WinErrors.GetSystemMessage(hr)}");
+                    }
+                    hr = Native.Acquire(device.description.serial);
+                    if (hr != 0) {
+                        Debug.LogError($"[UnityFFB] Acquire Failed: 0x{hr.ToString("x")} {WinErrors.GetSystemMessage(hr)}");
+                    }
+                }
+            }
             FlatJoyState2 state = new FlatJoyState2();
             int hresult = Native.GetDeviceState(device.description.serial, out state); // Poll the DirectInput Device
             if (hresult == 0)

@@ -37,5 +37,8 @@ public:
    HRESULT SetAutoCenter(bool autoCenter);
    void DestroyEffects();
 
+   HRESULT Unacquire();
+   HRESULT Acquire();
+
 };
 

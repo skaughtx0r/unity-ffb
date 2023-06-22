@@ -17,7 +17,7 @@ HHOOK g_deviceChangedHook = NULL;
 
 /**
  * This initializes the DirectInput 8 interface.
- * 
+ *
  * Once this is initialized, we can then enumerate devices
  * and select/create a Force Feedback device.
  */
@@ -144,7 +144,7 @@ DeviceInfo* EnumerateDevices(int &deviceCount)
       // log_file << device.second->deviceInfo.instanceName << ": " << device.second->deviceInfo.guidInstance << std::endl;
       g_vDeviceInstances.push_back(device.second->deviceInfo);
    }
-   
+
    if (g_vDeviceInstances.size() > 0)
    {
       deviceCount = (int)g_vDeviceInstances.size();
@@ -257,6 +257,24 @@ HRESULT CreateDevice(LPCSTR guidInstance)
    return E_FAIL;
 }
 
+HRESULT Acquire(LPCSTR guidInstance)
+{
+   std::string strInstance = std::string(guidInstance);
+   if (g_mDeviceInstances.find(strInstance) != g_mDeviceInstances.end()) {
+      return g_mDeviceInstances[strInstance]->Acquire();
+   }
+   return E_FAIL;
+}
+
+HRESULT Unacquire(LPCSTR guidInstance)
+{
+   std::string strInstance = std::string(guidInstance);
+   if (g_mDeviceInstances.find(strInstance) != g_mDeviceInstances.end()) {
+      return g_mDeviceInstances[strInstance]->Unacquire();
+   }
+   return E_FAIL;
+}
+
 HRESULT GetDeviceState(LPCSTR guidInstance, FlatJoyState2& state)
 {
    std::string strInstance = std::string(guidInstance);
@@ -269,7 +287,7 @@ HRESULT GetDeviceState(LPCSTR guidInstance, FlatJoyState2& state)
 /**
  * This function will return info about Force Feedback Axes associate with
  * the currently selected device. For a steering wheel, there's typically
- * only 1 axis. This function 
+ * only 1 axis. This function
  */
 DeviceAxisInfo* EnumerateFFBAxes(LPCSTR guidInstance, int &axisCount)
 {
@@ -358,7 +376,7 @@ HRESULT UpdateEffectGain(LPCSTR guidInstance, Effects::Type effectType, float ga
 
 /**
  * Update the Constant Force Effect.
- * 
+ *
  * Magnitude is the magnitude of the force on all axes.
  * Directions is an array of directions for each axis on the device.
  * The size of the array must match the number of axes on the device.
@@ -404,7 +422,7 @@ HRESULT SetAutoCenter(LPCSTR guidInstance, bool autoCenter)
  * Clean up the Force Feedback device and any effects.
  */
 void DestroyDevice(LPCSTR guidInstance)
-{     
+{
    std::string strInstance = std::string(guidInstance);
    if (g_mDeviceInstances.find(strInstance) != g_mDeviceInstances.end()) {
       g_mDeviceInstances[strInstance]->DestroyDevice();

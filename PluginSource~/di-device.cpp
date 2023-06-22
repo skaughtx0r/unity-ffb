@@ -62,6 +62,32 @@ void DIDevice::DestroyDevice()
    //SAFE_DELETE_ARRAY(deviceInfo.productName);
 }
 
+HRESULT DIDevice::Unacquire()
+{
+   if (pDevice) {
+      return pDevice->Unacquire();
+   }
+   return E_FAIL;
+}
+
+HRESULT DIDevice::Acquire()
+{
+   if (pDevice) {
+      // Find the main window associated with this process.
+      HWND hWnd = FindMainWindow(GetCurrentProcessId());
+      // Set the cooperative level to let DInput know how this device should
+      // interact with the system and with other DInput applications.
+      // Exclusive access is required in order to perform force feedback.
+      HRESULT hr;
+      if (FAILED(hr = pDevice->SetCooperativeLevel(hWnd, DISCL_EXCLUSIVE | DISCL_BACKGROUND)))
+      {
+         return hr;
+      }
+      return pDevice->Acquire();
+   }
+   return E_FAIL;
+}
+
 HRESULT DIDevice::GetDeviceState(FlatJoyState2& state)
 {
    HRESULT hr = E_FAIL;
@@ -110,7 +136,7 @@ BOOL CALLBACK DIDevice::_cbEnumFFBAxes(const DIDEVICEOBJECTINSTANCE* pdidoi, voi
       OLECHAR* guidType;
       StringFromCLSID(pdidoi->guidType, &guidType);
 
-      std::string strGuidType = utf16ToUTF8(guidType);   
+      std::string strGuidType = utf16ToUTF8(guidType);
 
       dai.guidType = new char[strGuidType.length() + 1];
       dai.name = new char[strName.length() + 1];
