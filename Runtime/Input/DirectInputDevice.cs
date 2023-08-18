@@ -101,7 +101,7 @@ namespace UnityFFB
                     {
                         interfaceName = "DirectInput",
                         manufacturer = di.productName,
-                        product = di.instanceName,
+                        product = di.productName,
                         serial = di.guidInstance,
                         capabilities = $@"{{""vendorId"":{di.vendorId},""productId"":{di.productId},""hasFFB"":{hasFFB}}}",
                     });
