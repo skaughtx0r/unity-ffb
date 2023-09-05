@@ -90,21 +90,22 @@ namespace UnityFFB
                 {
                     continue;
                 }
-                Debug.Log($"Found Direct Input Device: {di.productName} - {di.instanceName} - {di.guidInstance}");
-                InputSystem.RegisterLayout<DirectInputDevice>($"DI::{di.productName}",
-                    matches: new InputDeviceMatcher().WithProduct(di.productName)
-                );
                 if (DirectInputManager.CreateDevice(di))
                 {
                     string hasFFB = di.hasFFB ? "true" : "false";
-                    InputDevice ISDevice = InputSystem.AddDevice(new InputDeviceDescription
+                    Debug.Log($"Found Direct Input Device: {di.productName} - {di.instanceName} - {di.guidInstance}");
+                    InputDeviceDescription devDesc = new InputDeviceDescription
                     {
                         interfaceName = "DirectInput",
                         manufacturer = di.productName,
                         product = di.productName,
                         serial = di.guidInstance,
                         capabilities = $@"{{""vendorId"":{di.vendorId},""productId"":{di.productId},""hasFFB"":{hasFFB}}}",
-                    });
+                    };
+                    InputSystem.RegisterLayout<DirectInputDevice>($"DI::{di.productName}",
+                        matches: InputDeviceMatcher.FromDeviceDescription(devDesc)
+                    );
+                    InputDevice ISDevice = InputSystem.AddDevice(devDesc);
                     Debug.Log($"Added Device: {di.productName} - {di.instanceName} - {di.guidInstance}");
                 }
             }
