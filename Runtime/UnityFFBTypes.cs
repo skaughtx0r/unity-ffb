@@ -69,22 +69,22 @@ namespace UnityFFB {
         /// </summary>
         public int offset;
         /// <summary>
-        /// Coefficient constant on the positive side of the offset, in the range 
+        /// Coefficient constant on the positive side of the offset, in the range
         /// from - 10,000 through 10,000.
         /// </summary>
         public int positiveCoefficient;
         /// <summary>
-        /// Coefficient constant on the negative side of the offset, in the range 
+        /// Coefficient constant on the negative side of the offset, in the range
         /// from - 10,000 through 10,000. If the device does not support separate
-        /// positive and negative coefficients, the value of lNegativeCoefficient 
-        /// is ignored, and the value of lPositiveCoefficient is used as both the 
+        /// positive and negative coefficients, the value of lNegativeCoefficient
+        /// is ignored, and the value of lPositiveCoefficient is used as both the
         /// positive and negative coefficients.
         /// </summary>
         public int negativeCoefficient;
         /// <summary>
         /// Maximum force output on the positive side of the offset, in the range
         /// from 0 through 10,000.
-        /// 
+        ///
         /// If the device does not support force saturation, the value of this
         /// member is ignored.
         /// </summary>
@@ -95,7 +95,7 @@ namespace UnityFFB {
         ///
         /// If the device does not support force saturation, the value of this member
         /// is ignored.
-        /// 
+        ///
         /// If the device does not support separate positive and negative saturation,
         /// the value of dwNegativeSaturation is ignored, and the value of dwPositiveSaturation
         /// is used as both the positive and negative saturation.
@@ -385,17 +385,17 @@ namespace UnityFFB {
         [InputControl(name = "dpad1/down", bit = 5, displayName = "Down")]
         [InputControl(name = "dpad1/left", bit = 6, displayName = "Left")]
         [InputControl(name = "dpad1/right", bit = 7, displayName = "Right")]
-        [InputControl(name = "dpad2", layout = "Dpad", bit = 0, sizeInBits = 4, displayName = "Dpad2")]
+        [InputControl(name = "dpad2", layout = "Dpad", bit = 8, sizeInBits = 4, displayName = "Dpad2")]
         [InputControl(name = "dpad2/up", bit = 8, displayName = "Up")]
         [InputControl(name = "dpad2/down", bit = 9, displayName = "Down")]
         [InputControl(name = "dpad2/left", bit = 10, displayName = "Left")]
         [InputControl(name = "dpad2/right", bit = 11, displayName = "Right")]
-        [InputControl(name = "dpad3", layout = "Dpad", bit = 4, sizeInBits = 4, displayName = "Dpad3")]
+        [InputControl(name = "dpad3", layout = "Dpad", bit = 12, sizeInBits = 4, displayName = "Dpad3")]
         [InputControl(name = "dpad3/up", bit = 12, displayName = "Up")]
         [InputControl(name = "dpad3/down", bit = 13, displayName = "Down")]
         [InputControl(name = "dpad3/left", bit = 14, displayName = "Left")]
         [InputControl(name = "dpad3/right", bit = 15, displayName = "Right")]
-        public UInt16 rgdwPOV; // Store each DPAD in chunks of 4 bits inside 16-bit short     
+        public UInt16 rgdwPOV; // Store each DPAD in chunks of 4 bits inside 16-bit short
 
 
         public FourCC format => new FourCC('U', 'F', 'F', 'B');
