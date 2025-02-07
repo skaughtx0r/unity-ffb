@@ -105,7 +105,18 @@ namespace UnityFFB
                     InputSystem.RegisterLayout<DirectInputDevice>($"DI::{di.productName}",
                         matches: InputDeviceMatcher.FromDeviceDescription(devDesc)
                     );
-                    InputDevice ISDevice = InputSystem.AddDevice(devDesc);
+                    try
+                    {
+                        InputDevice ISDevice = InputSystem.AddDevice(devDesc);
+                    }
+                    catch(Exception e)
+                    {
+                        // Debug.LogError(e);
+                        InputSystem.RemoveLayout("DPad");
+                        // re-add the normal dpad layout
+                        InputSystem.RegisterLayout<UnityEngine.InputSystem.Controls.DpadControl>("DPad");
+                        InputDevice ISDevice = InputSystem.AddDevice(devDesc);
+                    }
                     Debug.Log($"Added Device: {di.productName} - {di.instanceName} - {di.guidInstance}");
                 }
             }
