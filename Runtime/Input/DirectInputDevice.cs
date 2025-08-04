@@ -9,6 +9,8 @@ using UnityEngine.InputSystem.Layouts;
 using UnityEngine.InputSystem.LowLevel;
 using UnityEngine.InputSystem.Utilities;
 using System.Collections.Generic;
+using UnityEngine.Events;
+
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -24,6 +26,9 @@ namespace UnityFFB
 
         public FlatJoyState2 lastState;
         public static List<InputDeviceDescription> removedDevices = new List<InputDeviceDescription>();
+
+        public static UnityAction<InputDevice> onDeviceAdded;
+        public static UnityAction<InputDevice> onDeviceRemoved;
 
         bool prevFocused = true;
 
@@ -162,6 +167,9 @@ namespace UnityFFB
             if (current == this)
                 current = null;
             Debug.Log($"{this} Removed!");
+            if (onDeviceRemoved != null) {
+                onDeviceRemoved(this);
+            }
         }
 
         protected override void OnAdded()
@@ -172,6 +180,9 @@ namespace UnityFFB
             {
                 Debug.LogError($"Removing {this} because interfaceName == HID");
                 InputSystem.RemoveDevice(this);
+            }
+            if (onDeviceAdded != null) {
+                onDeviceAdded(this);
             }
         }
 
