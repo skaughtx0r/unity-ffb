@@ -11,6 +11,7 @@ namespace UnityFFB {
 
         #if UNITY_STANDALONE_WIN
         private const string FFBDLL = "UnityFFB";
+        [DllImport(FFBDLL)] public static extern void   SetLogPath(string path);
         [DllImport(FFBDLL)] public static extern int    StartDirectInput();
         [DllImport(FFBDLL)] public static extern IntPtr EnumerateDevices(ref int deviceCount);
         [DllImport(FFBDLL)] public static extern IntPtr EnumerateFFBAxes(string guidInstance, ref int axisCount);
@@ -58,6 +59,9 @@ namespace UnityFFB {
         {
 #if UNITY_STANDALONE_WIN
             if (_isInitialized) { return _isInitialized; }
+
+            try { Native.SetLogPath(UnityEngine.Application.persistentDataPath); }
+            catch (System.EntryPointNotFoundException) { }
 
             if (Native.StartDirectInput() != 0) { _isInitialized = false; }
 

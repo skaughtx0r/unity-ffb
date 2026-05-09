@@ -18,8 +18,6 @@ LRESULT _cbDeviceChanged(int code, WPARAM wParam, LPARAM lParam);
 void ClearDeviceInstances();
 void FreeDirectInput();
 
-bool IsDuplicateDevice(const DIDEVICEINSTANCE *pInst);
-
 extern "C"
 {
    UNITYFFB_API HRESULT StartDirectInput();
@@ -42,6 +40,7 @@ extern "C"
    UNITYFFB_API void StopDirectInput();
 
    typedef void(__stdcall* DeviceChangedCallback)();
+   UNITYFFB_API void SetLogPath(LPCSTR path);
    UNITYFFB_API void RegisterDeviceChangedCallback(DeviceChangedCallback fnCallback);
    UNITYFFB_API void UnregisterDeviceChangedCallback();
 }

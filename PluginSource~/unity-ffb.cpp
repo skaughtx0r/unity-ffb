@@ -7,7 +7,6 @@
 #include "unity-ffb.h"
 #include "util.h"
 #include "di-device.h"
-// #include <fstream>
 
 std::map<std::string, DIDevice*> g_mDeviceInstances;
 std::vector<DeviceInfo> g_vDeviceInstances;
@@ -100,6 +99,8 @@ DeviceInfo* EnumerateDevices(int &deviceCount)
    }
    ClearDeviceInstances();
 
+   LogMessage("[UnityFFB] ======== EnumerateDevices START ========");
+
    // First fetch all devices
    hr = g_pDI->EnumDevices(
       DI8DEVCLASS_ALL,
@@ -107,6 +108,7 @@ DeviceInfo* EnumerateDevices(int &deviceCount)
       NULL,
       DIEDFL_ATTACHEDONLY
    );
+   LogMessage("[UnityFFB] Pass 1 (all devices) complete: %d device(s) in map", (int)g_mDeviceInstances.size());
 
    hr = g_pDI->EnumDevices(
       DI8DEVCLASS_GAMECTRL,
@@ -114,6 +116,7 @@ DeviceInfo* EnumerateDevices(int &deviceCount)
       NULL,
       DIEDFL_ATTACHEDONLY | DIEDFL_FORCEFEEDBACK
    );
+   LogMessage("[UnityFFB] Pass 2 (FFB devices) complete");
 
    std::vector<std::string> devicesToRemove;
 
@@ -133,26 +136,33 @@ DeviceInfo* EnumerateDevices(int &deviceCount)
 
    // Purge the devices to be removed
    for (auto& guid : devicesToRemove) {
+      LogMessage("[UnityFFB] Removing unplugged device: %s", guid.c_str());
       g_mDeviceInstances[guid]->DestroyDevice();
       g_mDeviceInstances.erase(guid);
    }
 
    ClearDeviceInstances();
-   // std::ofstream log_file("unityffb.log", std::ios_base::out | std::ios_base::app);
-   // log_file << std::endl << "Final Direct Input Devices:" << std::endl;
+   LogMessage("[UnityFFB] Final devices:");
    for (auto& device : g_mDeviceInstances) {
-      // log_file << device.second->deviceInfo.instanceName << ": " << device.second->deviceInfo.guidInstance << std::endl;
+      LogMessage("[UnityFFB]   '%s' guid=%s VID=0x%04x PID=0x%04x hasFFB=%d",
+         device.second->deviceInfo.instanceName,
+         device.second->deviceInfo.guidInstance,
+         device.second->deviceInfo.vendorId,
+         device.second->deviceInfo.productId,
+         device.second->deviceInfo.hasFFB);
       g_vDeviceInstances.push_back(device.second->deviceInfo);
    }
 
    if (g_vDeviceInstances.size() > 0)
    {
       deviceCount = (int)g_vDeviceInstances.size();
+      LogMessage("[UnityFFB] ======== EnumerateDevices END: %d device(s) ========", deviceCount);
       return &g_vDeviceInstances[0];
    }
    else {
       deviceCount = 0;
    }
+   LogMessage("[UnityFFB] ======== EnumerateDevices END: 0 devices ========");
    return NULL;
 }
 
@@ -186,14 +196,35 @@ BOOL CALLBACK _cbEnumDevices(const DIDEVICEINSTANCE* pInst, void* pContext)
 
    HRESULT hr;
    LPDIRECTINPUTDEVICE8 dvce = nullptr;
-   if (FAILED(hr = g_pDI->CreateDevice(pInst->guidInstance, &dvce, NULL))) { return true; } // L"CreateDevice failed! 0x%08x", hr
+   if (FAILED(hr = g_pDI->CreateDevice(pInst->guidInstance, &dvce, NULL))) {
+      LogMessage("[UnityFFB] EnumDevices: CreateDevice failed for '%s' guid=%s hr=0x%08x - skipping",
+         strInstanceName.c_str(), strGuidInstance.c_str(), hr);
+      return DIENUM_CONTINUE;
+   }
 
+   // Get VID/PID
    DIPROPDWORD vidpid;
    vidpid.diph.dwSize = sizeof(DIPROPDWORD);
    vidpid.diph.dwHeaderSize = sizeof(DIPROPHEADER);
    vidpid.diph.dwObj = 0;
    vidpid.diph.dwHow = DIPH_DEVICE;
-   if (FAILED(hr = dvce->GetProperty(DIPROP_VIDPID, &vidpid.diph))) { dvce->Release(); return true; } // L"GetProperty failed! Failed to get symbolic path for device 0x%08x", hr
+   if (FAILED(hr = dvce->GetProperty(DIPROP_VIDPID, &vidpid.diph))) {
+      LogMessage("[UnityFFB] EnumDevices: GetProperty VIDPID failed for '%s' guid=%s hr=0x%08x - skipping",
+         strInstanceName.c_str(), strGuidInstance.c_str(), hr);
+      dvce->Release();
+      return DIENUM_CONTINUE;
+   }
+
+   // Get HID path for logging
+   std::string hidPath = "(unknown)";
+   DIPROPGUIDANDPATH guidPath;
+   guidPath.diph.dwSize = sizeof(DIPROPGUIDANDPATH);
+   guidPath.diph.dwHeaderSize = sizeof(DIPROPHEADER);
+   guidPath.diph.dwObj = 0;
+   guidPath.diph.dwHow = DIPH_DEVICE;
+   if (!FAILED(dvce->GetProperty(DIPROP_GUIDANDPATH, &guidPath.diph))) {
+      hidPath = utf16ToUTF8(guidPath.wszPath);
+   }
    dvce->Release();
 
    di.vendorId = LOWORD(vidpid.dwData);
@@ -210,18 +241,20 @@ BOOL CALLBACK _cbEnumDevices(const DIDEVICEINSTANCE* pInst, void* pContext)
    strcpy_s(di.instanceName, strInstanceName.length() + 1, strInstanceName.c_str());
    strcpy_s(di.productName, strProductName.length() + 1, strProductName.c_str());
 
+   LogMessage("[UnityFFB] EnumDevices: '%s' product='%s' guid=%s VID=0x%04x PID=0x%04x type=0x%08x path=%s",
+      strInstanceName.c_str(), strProductName.c_str(), strGuidInstance.c_str(),
+      di.vendorId, di.productId, pInst->dwDevType, hidPath.c_str());
+
    g_vDeviceInstances.push_back(di);
 
-   if (IsDuplicateDevice(pInst)) {
-      return DIENUM_CONTINUE;
-   }
-
    if (g_mDeviceInstances.find(strGuidInstance) != g_mDeviceInstances.end()) {
+      LogMessage("[UnityFFB] EnumDevices: guid=%s already in map, skipping", strGuidInstance.c_str());
       return DIENUM_CONTINUE;
    }
 
    DIDevice* device = new DIDevice(g_pDI, pInst->guidInstance, di);
    g_mDeviceInstances[strGuidInstance] = device;
+   LogMessage("[UnityFFB] EnumDevices: Added '%s' to device map", strInstanceName.c_str());
 
    return DIENUM_CONTINUE;
 }
@@ -235,9 +268,15 @@ BOOL CALLBACK _cbEnumFFBDevices(const DIDEVICEINSTANCE* pInst, void* pContext)
    OLECHAR* guidInstance;
    StringFromCLSID(pInst->guidInstance, &guidInstance);
    std::string strGuidInstance = utf16ToUTF8(guidInstance);
+   std::string strInstanceName = utf16ToUTF8(pInst->tszInstanceName);
+
+   LogMessage("[UnityFFB] EnumFFBDevices: '%s' guid=%s", strInstanceName.c_str(), strGuidInstance.c_str());
 
    if (g_mDeviceInstances.find(strGuidInstance) != g_mDeviceInstances.end()) {
       g_mDeviceInstances[strGuidInstance]->deviceInfo.hasFFB = true;
+      LogMessage("[UnityFFB] EnumFFBDevices: Marked '%s' as FFB-capable", strInstanceName.c_str());
+   } else {
+      LogMessage("[UnityFFB] EnumFFBDevices: WARNING - guid=%s not found in device map, hasFFB NOT set", strGuidInstance.c_str());
    }
 
    return DIENUM_CONTINUE;
@@ -466,33 +505,12 @@ void StopDirectInput()
    FreeDirectInput();
 }
 
-bool IsDuplicateDevice(const DIDEVICEINSTANCE *pInst) {
-   HRESULT hr;
-   LPDIRECTINPUTDEVICE8 DIDevice = nullptr;
-   if (FAILED(hr = g_pDI->CreateDevice(pInst->guidInstance, &DIDevice, NULL))) { return true; } // L"CreateDevice failed! 0x%08x", hr
-
-   DIPROPGUIDANDPATH GUIDPath;
-   GUIDPath.diph.dwSize = sizeof(DIPROPGUIDANDPATH);
-   GUIDPath.diph.dwHeaderSize = sizeof(DIPROPHEADER);
-   GUIDPath.diph.dwObj = 0;
-   GUIDPath.diph.dwHow = DIPH_DEVICE;
-   if (FAILED(hr = DIDevice->GetProperty(DIPROP_GUIDANDPATH, &GUIDPath.diph))) { DIDevice->Release(); return true; } // L"GetProperty failed! Failed to get symbolic path for device 0x%08x", hr
-   DIDevice->Release();
-
-   std::string strInstanceName = utf16ToUTF8(pInst->tszInstanceName);
-   std::string hidPath = utf16ToUTF8(GUIDPath.wszPath);
-   OLECHAR* guidInstance;
-   StringFromCLSID(pInst->guidInstance, &guidInstance);
-   std::string strGuidInstance = utf16ToUTF8(guidInstance);
-
-   // std::ofstream log_file("unityffb.log", std::ios_base::out | std::ios_base::app);
-   // log_file << strInstanceName << ": " << strGuidInstance << ": " << hidPath << std::endl;
-
-   // col01 is primary device, col02 is secondary, so col02 is the duplicate.
-   if (wcsstr(GUIDPath.wszPath, L"&col02") != 0) {
-      return true;
-   }
-   else {
-      return false;
-   }
+/**
+ * Set the directory for the log file. Call before StartDirectInput.
+ * Defaults to %LOCALAPPDATA%Low\unity-ffb\ if not set.
+ */
+void SetLogPath(LPCSTR path)
+{
+   SetLogDirectory(path);
 }
+

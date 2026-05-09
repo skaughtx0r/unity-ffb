@@ -35,6 +35,7 @@ namespace UnityFFB {
         public string instanceName;
         [MarshalAs(UnmanagedType.LPStr)]
         public string productName;
+        [MarshalAs(UnmanagedType.I1)]
         public bool hasFFB;
     }
 

@@ -16,34 +16,41 @@ HRESULT DIDevice::CreateDevice()
       DestroyDevice();
    }
 
+   LogMessage("[UnityFFB] CreateDevice: Creating device for '%s'", deviceInfo.instanceName);
+
    HRESULT hr = pDI->CreateDevice(deviceGuid, &pDevice, NULL);
 
    if (FAILED(hr))
    {
+      LogMessage("[UnityFFB] CreateDevice: CreateDevice failed hr=0x%08x", hr);
       return hr;
    }
 
-   // Not sure if this is necessary.
    if (FAILED(hr = pDevice->SetDataFormat(&c_dfDIJoystick2)))
    {
+      LogMessage("[UnityFFB] CreateDevice: SetDataFormat failed hr=0x%08x", hr);
       return hr;
    }
 
    // Find the main window associated with this process.
    HWND hWnd = FindMainWindow(GetCurrentProcessId());
+   LogMessage("[UnityFFB] CreateDevice: Found HWND=%p", hWnd);
    // Set the cooperative level to let DInput know how this device should
    // interact with the system and with other DInput applications.
    // Exclusive access is required in order to perform force feedback.
    if (FAILED(hr = pDevice->SetCooperativeLevel(hWnd, DISCL_EXCLUSIVE | DISCL_BACKGROUND)))
    {
+      LogMessage("[UnityFFB] CreateDevice: SetCooperativeLevel (EXCLUSIVE) failed hr=0x%08x", hr);
       return hr;
    }
 
    if (FAILED(hr = pDevice->Acquire()))
    {
+      LogMessage("[UnityFFB] CreateDevice: Acquire failed hr=0x%08x", hr);
       return hr;
    }
 
+   LogMessage("[UnityFFB] CreateDevice: Success for '%s'", deviceInfo.instanceName);
    return S_OK;
 }
 
@@ -65,8 +72,11 @@ void DIDevice::DestroyDevice()
 HRESULT DIDevice::Unacquire()
 {
    if (pDevice) {
-      return pDevice->Unacquire();
+      HRESULT hr = pDevice->Unacquire();
+      LogMessage("[UnityFFB] Unacquire: hr=0x%08x for '%s'", hr, deviceInfo.instanceName);
+      return hr;
    }
+   LogMessage("[UnityFFB] Unacquire: pDevice is NULL for '%s'", deviceInfo.instanceName);
    return E_FAIL;
 }
 
@@ -81,10 +91,14 @@ HRESULT DIDevice::Acquire()
       HRESULT hr;
       if (FAILED(hr = pDevice->SetCooperativeLevel(hWnd, DISCL_EXCLUSIVE | DISCL_BACKGROUND)))
       {
+         LogMessage("[UnityFFB] Acquire: SetCooperativeLevel failed hr=0x%08x for '%s'", hr, deviceInfo.instanceName);
          return hr;
       }
-      return pDevice->Acquire();
+      hr = pDevice->Acquire();
+      LogMessage("[UnityFFB] Acquire: hr=0x%08x for '%s'", hr, deviceInfo.instanceName);
+      return hr;
    }
+   LogMessage("[UnityFFB] Acquire: pDevice is NULL for '%s'", deviceInfo.instanceName);
    return E_FAIL;
 }
 
@@ -104,9 +118,11 @@ HRESULT DIDevice::GetDeviceState(FlatJoyState2& state)
 DeviceAxisInfo* DIDevice::EnumerateFFBAxes(int &axisCount)
 {
    if (pDevice == NULL) {
+      LogMessage("[UnityFFB] EnumerateFFBAxes: pDevice is NULL for '%s'", deviceInfo.instanceName);
       return NULL;
    }
 
+   LogMessage("[UnityFFB] EnumerateFFBAxes: Enumerating axes for '%s'", deviceInfo.instanceName);
    _axisCount = 0;
    ClearDeviceAxes();
    pDevice->EnumObjects(_cbEnumFFBAxes, (void*)this, DIDFT_AXIS);
@@ -114,10 +130,12 @@ DeviceAxisInfo* DIDevice::EnumerateFFBAxes(int &axisCount)
    if (vDeviceAxes.size() > 0)
    {
       axisCount = (int)vDeviceAxes.size();
+      LogMessage("[UnityFFB] EnumerateFFBAxes: Found %d FFB axis/axes", axisCount);
       return &vDeviceAxes[0];
    }
    else {
       axisCount = 0;
+      LogMessage("[UnityFFB] EnumerateFFBAxes: No FFB axes found (0 axes with DIDOI_FFACTUATOR)");
    }
    return NULL;
 }
@@ -127,16 +145,21 @@ BOOL CALLBACK DIDevice::_cbEnumFFBAxes(const DIDEVICEOBJECTINSTANCE* pdidoi, voi
    DIDevice* me = (DIDevice*)pContext;
    std::string strName = utf16ToUTF8(pdidoi->tszName);
 
-   if ((pdidoi->dwFlags & DIDOI_FFACTUATOR) != 0)
+   OLECHAR* guidTypeStr;
+   StringFromCLSID(pdidoi->guidType, &guidTypeStr);
+   std::string strGuidType = utf16ToUTF8(guidTypeStr);
+
+   bool isFFBActuator = (pdidoi->dwFlags & DIDOI_FFACTUATOR) != 0;
+   LogMessage("[UnityFFB] EnumAxis: '%s' type=%s offset=%d flags=0x%08x ffActuator=%d maxForce=%d",
+      strName.c_str(), strGuidType.c_str(), pdidoi->dwOfs, pdidoi->dwFlags,
+      isFFBActuator, pdidoi->dwFFMaxForce);
+
+   if (isFFBActuator)
    {
       me->_axisCount++;
 
       DeviceAxisInfo dai = { 0 };
       int daiSize = sizeof(DeviceAxisInfo);
-      OLECHAR* guidType;
-      StringFromCLSID(pdidoi->guidType, &guidType);
-
-      std::string strGuidType = utf16ToUTF8(guidType);
 
       dai.guidType = new char[strGuidType.length() + 1];
       dai.name = new char[strName.length() + 1];
@@ -177,21 +200,24 @@ void DIDevice::ClearDeviceAxes()
 }
 
 HRESULT DIDevice::AddFFBEffect(Effects::Type effectType) {
+   LogMessage("[UnityFFB] AddFFBEffect: type=%d for '%s'", effectType, deviceInfo.instanceName);
+
    if (pDevice == NULL)
    {
+      LogMessage("[UnityFFB] AddFFBEffect: pDevice is NULL");
       return E_FAIL;
    }
 
    if (mEffects.find(effectType) != mEffects.end())
    {
-      // You cannot add an effect that is already added.
+      LogMessage("[UnityFFB] AddFFBEffect: Effect type %d already added", effectType);
       return E_ABORT;
    }
 
    int axisCount = (int)vDeviceAxes.size();
    if (axisCount == 0)
    {
-      // Must run EnumerateAxes first.
+      LogMessage("[UnityFFB] AddFFBEffect: No axes enumerated, must run EnumerateAxes first");
       return E_BOUNDS;
    }
 
@@ -263,6 +289,11 @@ HRESULT DIDevice::AddFFBEffect(Effects::Type effectType) {
          hr = S_OK;
          mEffects[effectType] = pEffect;
          mDIEFFECTs[effectType] = effect;
+         LogMessage("[UnityFFB] AddFFBEffect: Created effect type=%d with %d axes", effectType, axisCount);
+      }
+      else
+      {
+         LogMessage("[UnityFFB] AddFFBEffect: CreateEffect failed type=%d hr=0x%08x", effectType, hr);
       }
    }
 
@@ -327,20 +358,23 @@ HRESULT DIDevice::UpdateConstantForce(LONG magnitude, LONG* directions)
    {
       LPDIRECTINPUTEFFECT pEffect = mEffects[Effects::Type::ConstantForce];
 
+      DIEFFECT effect;
       DICONSTANTFORCE constantForce;
 
-      int axisCount = (int)vDeviceAxes.size();
+      // int axisCount = (int)vDeviceAxes.size();
 
       constantForce.lMagnitude = magnitude;
 
-      DIEFFECT effect = mDIEFFECTs[Effects::Type::ConstantForce];
-      effect.cAxes = axisCount;
-      for (int i = 0; i < axisCount; i++) {
-         effect.rglDirection[i] = directions[i];
-      }
-      ((DICONSTANTFORCE*)effect.lpvTypeSpecificParams)->lMagnitude = magnitude;
+      //DIEFFECT effect = mDIEFFECTs[Effects::Type::ConstantForce];
+      // effect.cAxes = axisCount;
+      // for (int i = 0; i < axisCount; i++) {
+      //   effect.rglDirection[i] = directions[i];
+      // }
+      // ((DICONSTANTFORCE*)effect.lpvTypeSpecificParams)->lMagnitude = magnitude;
+      effect.cbTypeSpecificParams = sizeof(DICONSTANTFORCE);
+      effect.lpvTypeSpecificParams = &constantForce;
 
-      hr = pEffect->SetParameters(&effect, DIEP_DIRECTION | DIEP_TYPESPECIFICPARAMS | DIEP_START);
+      hr = pEffect->SetParameters(&effect, DIEP_TYPESPECIFICPARAMS);
    }
 
    return hr;
@@ -371,7 +405,7 @@ HRESULT DIDevice::UpdateSpring(DICONDITION* conditions)
          ((DICONDITION*)effect.lpvTypeSpecificParams)[i].dwNegativeSaturation = conditions[i].dwNegativeSaturation;
       }
 
-      hr = pEffect->SetParameters(&effect, DIEP_DIRECTION | DIEP_TYPESPECIFICPARAMS | DIEP_START);
+      hr = pEffect->SetParameters(&effect, DIEP_TYPESPECIFICPARAMS);
    }
 
    return hr;
@@ -394,6 +428,12 @@ HRESULT DIDevice::SetAutoCenter(bool autoCenter)
       dipdw.dwData = autoCenter ? DIPROPAUTOCENTER_ON : DIPROPAUTOCENTER_OFF;
 
       hr = pDevice->SetProperty(DIPROP_AUTOCENTER, &dipdw.diph);
+      LogMessage("[UnityFFB] SetAutoCenter: %s hr=0x%08x for '%s'",
+         autoCenter ? "ON" : "OFF", hr, deviceInfo.instanceName);
+   }
+   else
+   {
+      LogMessage("[UnityFFB] SetAutoCenter: pDevice is NULL for '%s'", deviceInfo.instanceName);
    }
 
    return hr;

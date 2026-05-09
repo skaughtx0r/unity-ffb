@@ -1,5 +1,41 @@
 #include "pch.h"
 #include "util.h"
+#include <cstdarg>
+#include <cstdio>
+#include <fstream>
+#include <shlobj.h>
+
+static std::string g_logFilePath = "";
+
+std::string GetDefaultLogPath() {
+   PWSTR localAppData = NULL;
+   if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_LocalAppDataLow, 0, NULL, &localAppData))) {
+      std::wstring wpath(localAppData);
+      CoTaskMemFree(localAppData);
+      std::string path = utf16ToUTF8(wpath);
+      path += "\\unity-ffb";
+      CreateDirectoryA(path.c_str(), NULL);
+      return path + "\\unityffb.log";
+   }
+   return "unityffb.log";
+}
+
+std::string& GetLogFilePath() {
+   if (g_logFilePath.empty()) {
+      g_logFilePath = GetDefaultLogPath();
+   }
+   return g_logFilePath;
+}
+
+void SetLogDirectory(LPCSTR path) {
+   if (path != NULL) {
+      std::string dir(path);
+      // Normalize forward slashes to backslashes
+      for (auto& c : dir) { if (c == '/') c = '\\'; }
+      CreateDirectoryA(dir.c_str(), NULL);
+      g_logFilePath = dir + "\\unityffb.log";
+   }
+}
 
 /**
  * Helper function for converting wide strings to regular strings
@@ -174,6 +210,22 @@ void FlattenDIJOYSTATE2(DIJOYSTATE2& deviceState, FlatJoyState2& state) {
          state.rgdwPOV |= (byte)(1 << ((i + 1) * 0)); // dpad[i]/up, bit = 0
          break;
       }
+   }
+}
+
+void LogMessage(const char* format, ...) {
+   char buffer[2048];
+   va_list args;
+   va_start(args, format);
+   vsnprintf(buffer, sizeof(buffer), format, args);
+   va_end(args);
+
+   OutputDebugStringA(buffer);
+   OutputDebugStringA("\n");
+
+   std::ofstream log_file(GetLogFilePath(), std::ios_base::out | std::ios_base::app);
+   if (log_file.is_open()) {
+      log_file << buffer << std::endl;
    }
 }
 

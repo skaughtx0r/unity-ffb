@@ -84,6 +84,12 @@ namespace UnityFFB
             {
                 ffbEnabled = true;
 
+                Debug.Log($"[UnityFFB] EnableForceFeedback: {DirectInputManager.devices.Length} device(s), autoSelect={autoSelectFirstDevice}");
+                foreach (var device in DirectInputManager.devices)
+                {
+                    Debug.Log($"[UnityFFB] EnableForceFeedback: '{device.productName}' hasFFB={device.hasFFB} guid={device.guidInstance}");
+                }
+
                 if (autoSelectFirstDevice)
                 {
                     foreach (var device in DirectInputManager.devices)
