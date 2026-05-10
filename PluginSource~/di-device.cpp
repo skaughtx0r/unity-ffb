@@ -358,19 +358,12 @@ HRESULT DIDevice::UpdateConstantForce(LONG magnitude, LONG* directions)
    {
       LPDIRECTINPUTEFFECT pEffect = mEffects[Effects::Type::ConstantForce];
 
-      DIEFFECT effect;
+      DIEFFECT effect = {};
       DICONSTANTFORCE constantForce;
-
-      // int axisCount = (int)vDeviceAxes.size();
 
       constantForce.lMagnitude = magnitude;
 
-      //DIEFFECT effect = mDIEFFECTs[Effects::Type::ConstantForce];
-      // effect.cAxes = axisCount;
-      // for (int i = 0; i < axisCount; i++) {
-      //   effect.rglDirection[i] = directions[i];
-      // }
-      // ((DICONSTANTFORCE*)effect.lpvTypeSpecificParams)->lMagnitude = magnitude;
+      effect.dwSize = sizeof(DIEFFECT);
       effect.cbTypeSpecificParams = sizeof(DICONSTANTFORCE);
       effect.lpvTypeSpecificParams = &constantForce;
 
@@ -427,9 +420,12 @@ HRESULT DIDevice::SetAutoCenter(bool autoCenter)
       dipdw.diph.dwHow = DIPH_DEVICE;
       dipdw.dwData = autoCenter ? DIPROPAUTOCENTER_ON : DIPROPAUTOCENTER_OFF;
 
+      // Must unacquire to set autocenter property, then re-acquire
+      pDevice->Unacquire();
       hr = pDevice->SetProperty(DIPROP_AUTOCENTER, &dipdw.diph);
       LogMessage("[UnityFFB] SetAutoCenter: %s hr=0x%08x for '%s'",
          autoCenter ? "ON" : "OFF", hr, deviceInfo.instanceName);
+      pDevice->Acquire();
    }
    else
    {
