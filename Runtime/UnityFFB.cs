@@ -37,6 +37,7 @@ namespace UnityFFB
         public bool ffbEnabled { get; private set; }
         public bool constantForceEnabled { get; private set; }
         public bool springForceEnabled { get; private set; }
+        public FFBMode currentMode { get; private set; }
 
         private bool effectsEnabled = false;
 
@@ -169,49 +170,18 @@ namespace UnityFFB
                         springConditions[i] = new DICondition();
                     }
 
+                    // Set initial mode based on inspector flags
                     if (addConstantForce)
                     {
-                        hresult = Native.AddFFBEffect(device.guidInstance, EffectsType.ConstantForce);
-                        if (hresult == 0)
-                        {
-                            hresult = Native.UpdateConstantForce(device.guidInstance, 0, axisDirections);
-                            if (hresult != 0)
-                            {
-                                Debug.LogError($"[UnityFFB] UpdateConstantForce Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");
-                            }
-                            constantForceEnabled = true;
-                        }
-                        else
-                        {
-                            Debug.LogError($"[UnityFFB] AddConstantForce Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");
-                        }
+                        SetFFBMode(FFBMode.ConstantForce);
                     }
-
-                    if (addSpringForce)
+                    else if (addSpringForce)
                     {
-                        hresult = Native.AddFFBEffect(device.guidInstance, EffectsType.Spring);
-                        if (hresult == 0)
-                        {
-                            for (int i = 0; i < springConditions.Length; i++)
-                            {
-                                springConditions[i].deadband = 0;
-                                springConditions[i].offset = 0;
-                                springConditions[i].negativeCoefficient = 2000;
-                                springConditions[i].positiveCoefficient = 2000;
-                                springConditions[i].negativeSaturation = 10000;
-                                springConditions[i].positiveSaturation = 10000;
-                            }
-                            hresult = Native.UpdateSpring(device.guidInstance, springConditions);
-                            if (hresult != 0)
-                            {
-                                Debug.LogError($"[UnityFFB] UpdateSpringForce Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");
-                            }
-                            springForceEnabled = true;
-                        }
-                        else
-                        {
-                            Debug.LogError($"[UnityFFB] AddSpringForce Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");
-                        }
+                        SetFFBMode(FFBMode.SpringEffect);
+                    }
+                    else if (!disableAutoCenter)
+                    {
+                        SetFFBMode(FFBMode.NativeSpring);
                     }
                 }
                 Debug.Log($"[UnityFFB] Axis count: {axes.Length}");
@@ -277,6 +247,106 @@ namespace UnityFFB
             catch (DllNotFoundException e)
             {
                 LogMissingRuntimeError();
+            }
+#endif
+        }
+
+        /// <summary>
+        /// Switch the force feedback mode at runtime.
+        /// </summary>
+        public void SetFFBMode(FFBMode mode)
+        {
+#if UNITY_STANDALONE_WIN
+            if (nativeLibLoadFailed) { return; }
+            if (activeDevice == null || axes.Length == 0) { return; }
+
+            string guid = activeDevice.Value.guidInstance;
+            int hresult;
+
+            // Tear down current mode
+            if (constantForceEnabled)
+            {
+                Native.RemoveFFBEffect(guid, EffectsType.ConstantForce);
+                constantForceEnabled = false;
+            }
+            if (springForceEnabled)
+            {
+                Native.RemoveFFBEffect(guid, EffectsType.Spring);
+                springForceEnabled = false;
+            }
+            effectsEnabled = false;
+
+            // Set up new mode
+            switch (mode)
+            {
+                case FFBMode.ConstantForce:
+                    Native.SetAutoCenter(guid, false);
+                    hresult = Native.AddFFBEffect(guid, EffectsType.ConstantForce);
+                    if (hresult == 0)
+                    {
+                        Native.UpdateConstantForce(guid, 0, axisDirections);
+                        Native.StartAllFFBEffects(guid);
+                        constantForceEnabled = true;
+                        effectsEnabled = true;
+                    }
+                    else
+                    {
+                        Debug.LogError($"[UnityFFB] SetFFBMode ConstantForce: AddEffect failed 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");
+                    }
+                    break;
+
+                case FFBMode.SpringEffect:
+                    Native.SetAutoCenter(guid, false);
+                    hresult = Native.AddFFBEffect(guid, EffectsType.Spring);
+                    if (hresult == 0)
+                    {
+                        for (int i = 0; i < springConditions.Length; i++)
+                        {
+                            if (springConditions[i].positiveCoefficient == 0 && springConditions[i].negativeCoefficient == 0)
+                            {
+                                springConditions[i].deadband = 0;
+                                springConditions[i].offset = 0;
+                                springConditions[i].negativeCoefficient = 2000;
+                                springConditions[i].positiveCoefficient = 2000;
+                                springConditions[i].negativeSaturation = 10000;
+                                springConditions[i].positiveSaturation = 10000;
+                            }
+                        }
+                        Native.UpdateSpring(guid, springConditions);
+                        Native.StartAllFFBEffects(guid);
+                        springForceEnabled = true;
+                        effectsEnabled = true;
+                    }
+                    else
+                    {
+                        Debug.LogError($"[UnityFFB] SetFFBMode SpringEffect: AddEffect failed 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");
+                    }
+                    break;
+
+                case FFBMode.NativeSpring:
+                    Native.SetAutoCenter(guid, true);
+                    break;
+            }
+
+            currentMode = mode;
+            Debug.Log($"[UnityFFB] FFB mode set to {mode}");
+#endif
+        }
+
+        /// <summary>
+        /// Update the spring force conditions at runtime. Only applies when in SpringEffect mode.
+        /// </summary>
+        public void UpdateSpringForce(DICondition[] conditions)
+        {
+#if UNITY_STANDALONE_WIN
+            if (nativeLibLoadFailed) { return; }
+            if (!springForceEnabled || activeDevice == null) { return; }
+
+            springConditions = conditions;
+            int hresult = Native.UpdateSpring(activeDevice.Value.guidInstance, springConditions);
+            if (hresult != 0)
+            {
+                Debug.LogError($"[UnityFFB] UpdateSpringForce Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");
             }
 #endif
         }

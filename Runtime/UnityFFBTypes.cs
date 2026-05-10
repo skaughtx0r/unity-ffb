@@ -6,6 +6,19 @@ using UnityEngine.InputSystem.LowLevel;
 using UnityEngine.InputSystem.Utilities;
 
 namespace UnityFFB {
+    /// <summary>
+    /// Force feedback mode for the active device.
+    /// </summary>
+    public enum FFBMode
+    {
+        /// <summary>Game-driven force feedback via constant force effect.</summary>
+        ConstantForce,
+        /// <summary>DirectInput spring condition effect with adjustable coefficients.</summary>
+        SpringEffect,
+        /// <summary>Hardware auto-center spring (wheel firmware, not adjustable from software).</summary>
+        NativeSpring
+    }
+
     public enum EffectsType {
         ConstantForce = 0,
         RampForce = 1,
