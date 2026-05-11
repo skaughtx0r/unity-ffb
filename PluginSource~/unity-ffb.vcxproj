@@ -118,6 +118,9 @@
       <EnableUAC>false</EnableUAC>
       <AdditionalDependencies>dinput8.lib;dxguid.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PreBuildEvent>
+      <Command>powershell -NoProfile -Command "$v=(Get-Content '$(SolutionDir)..\package.json'|ConvertFrom-Json).version.Split('.'); '#define VER_MAJOR '+$v[0]+\"`n#define VER_MINOR \"+$v[1]+\"`n#define VER_PATCH \"+$v[2]+\"`n#define VER_BUILD 0\" | Set-Content '$(SolutionDir)version.h'"</Command>
+    </PreBuildEvent>
     <PostBuildEvent>
       <Command>xcopy "$(TargetDir)$(TargetName).dll" "$(SolutionDir)..\Runtime\Plugins\x86_64\" /F /Y </Command>
     </PostBuildEvent>
@@ -162,6 +165,9 @@
       <EnableUAC>false</EnableUAC>
       <AdditionalDependencies>dinput8.lib;dxguid.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PreBuildEvent>
+      <Command>powershell -NoProfile -Command "$v=(Get-Content '$(SolutionDir)..\package.json'|ConvertFrom-Json).version.Split('.'); '#define VER_MAJOR '+$v[0]+\"`n#define VER_MINOR \"+$v[1]+\"`n#define VER_PATCH \"+$v[2]+\"`n#define VER_BUILD 0\" | Set-Content '$(SolutionDir)version.h'"</Command>
+    </PreBuildEvent>
     <PostBuildEvent>
       <Command>xcopy "$(TargetDir)$(TargetName).dll" "$(SolutionDir)..\Runtime\Plugins\x86_64\" /F /Y </Command>
     </PostBuildEvent>
@@ -176,6 +182,9 @@
     <ClInclude Include="util.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="unity-ffb.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="version.rc" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="di-device.cpp" />
