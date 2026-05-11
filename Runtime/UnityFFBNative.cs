@@ -55,6 +55,11 @@ namespace UnityFFB {
             set { Debug.Log("[UnityFFB] Can't set devices!"); }
         }
 
+        public static DeviceInfo[] ffbDevices
+        {
+            get => _devices.Where(d => d.hasFFB).ToArray();
+        }
+
         public static bool Initialize()
         {
 #if UNITY_STANDALONE_WIN
