@@ -9,6 +9,10 @@ public:
    DeviceInfo deviceInfo;
    HWND hWnd;
    DWORD _axisCount;
+   // Populated during enumeration; used to collapse duplicate HID collections
+   // of the same physical device (see EnumerateDevices dedup).
+   DWORD firmwareRevision = 0;
+   std::string hidPath;
    std::vector<DeviceAxisInfo> vDeviceAxes;
    std::map<Effects::Type, LPDIRECTINPUTEFFECT> mEffects;
    std::map<Effects::Type, DIEFFECT> mDIEFFECTs;

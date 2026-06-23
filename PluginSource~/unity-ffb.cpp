@@ -7,6 +7,7 @@
 #include "unity-ffb.h"
 #include "util.h"
 #include "di-device.h"
+#include <set>
 
 std::map<std::string, DIDevice*> g_mDeviceInstances;
 std::vector<DeviceInfo> g_vDeviceInstances;
@@ -141,6 +142,62 @@ DeviceInfo* EnumerateDevices(int &deviceCount)
       g_mDeviceInstances.erase(guid);
    }
 
+   // Collapse phantom duplicate HID collections of the same physical device.
+   // Some wheel bases (first seen on Fanatec, VID 0x0eb7) enumerate a phantom
+   // secondary collection (&col02) with a distinct instance GUID that duplicates
+   // the wheel but maps its axes into the wrong DIJOYSTATE2 slots (one-sided
+   // wheel, half-range pedals) and can't host an FFB effect. The phantom reports
+   // firmwareRevision==0 while the real collection reports nonzero (the FFB caps
+   // are identical on both, so they can't be used to tell them apart). Group
+   // collections by physical device (HID path up to "&col") and, ONLY when a
+   // device exposes more than one collection, drop the firmwareRevision==0 ones.
+   //
+   // This is intentionally applied to ALL manufacturers (not VID-gated): the bug
+   // class is general to composite-HID wheels. Guards keep it conservative:
+   //   - single-collection devices are never touched;
+   //   - if no collection in a group has a nonzero revision, keep them all;
+   //   - g_dedupVendorOptOut lists VIDs to exclude if a device is ever reported
+   //     broken by this (e.g. one whose multiple collections are all legitimate
+   //     and a real secondary collection happens to report firmwareRevision==0).
+   // Every removal is logged so a regression is diagnosable straight from the log.
+   {
+      // VIDs to exclude from dedup. Add here if a device is reported broken by it.
+      static const std::set<WORD> g_dedupVendorOptOut = {};
+
+      std::map<std::string, std::vector<std::string>> deviceGroups; // pathBase -> guids
+      for (auto& entry : g_mDeviceInstances) {
+         DIDevice* d = entry.second;
+         if (g_dedupVendorOptOut.count(d->deviceInfo.vendorId)) { continue; }
+         if (d->hidPath.empty() || d->hidPath == "(unknown)") { continue; }
+         std::string pathBase = d->hidPath.substr(0, d->hidPath.find("&col"));
+         deviceGroups[pathBase].push_back(entry.first);
+      }
+
+      std::vector<std::string> duplicatesToRemove;
+      for (auto& group : deviceGroups) {
+         if (group.second.size() < 2) { continue; } // not duplicated; leave alone
+         bool anyReal = false;
+         for (auto& guid : group.second) {
+            if (g_mDeviceInstances[guid]->firmwareRevision != 0) { anyReal = true; break; }
+         }
+         if (!anyReal) { continue; } // all zero; can't distinguish, keep them all
+         for (auto& guid : group.second) {
+            if (g_mDeviceInstances[guid]->firmwareRevision == 0) {
+               duplicatesToRemove.push_back(guid);
+            }
+         }
+      }
+
+      for (auto& guid : duplicatesToRemove) {
+         DIDevice* d = g_mDeviceInstances[guid];
+         LogMessage("[UnityFFB] Removing duplicate collection (firmwareRevision=0): '%s' VID=0x%04x PID=0x%04x guid=%s path=%s",
+            d->deviceInfo.instanceName, d->deviceInfo.vendorId, d->deviceInfo.productId,
+            guid.c_str(), d->hidPath.c_str());
+         d->DestroyDevice();
+         g_mDeviceInstances.erase(guid);
+      }
+   }
+
    ClearDeviceInstances();
    LogMessage("[UnityFFB] Final devices:");
    for (auto& device : g_mDeviceInstances) {
@@ -225,6 +282,28 @@ BOOL CALLBACK _cbEnumDevices(const DIDEVICEINSTANCE* pInst, void* pContext)
    if (!FAILED(dvce->GetProperty(DIPROP_GUIDANDPATH, &guidPath.diph))) {
       hidPath = utf16ToUTF8(guidPath.wszPath);
    }
+
+   // Device capabilities. Empirically, the FFB-specific caps (DIDC_FORCEFEEDBACK,
+   // dwFFSamplePeriod, dwFFMinTimeResolution) are IDENTICAL on a Fanatec base's
+   // real collection and its phantom duplicate, so they can't tell them apart.
+   // dwFirmwareRevision/dwHardwareRevision DO differ: the real collection reports
+   // a nonzero revision, the phantom reports 0. We capture firmwareRevision here
+   // and use it in EnumerateDevices to collapse duplicates. These are static caps
+   // (no Acquire / effect creation), so this works even when FFB is never enabled.
+   DWORD firmwareRevision = 0;
+   DIDEVCAPS caps = { 0 };
+   caps.dwSize = sizeof(DIDEVCAPS);
+   if (!FAILED(dvce->GetCapabilities(&caps))) {
+      firmwareRevision = caps.dwFirmwareRevision;
+      LogMessage("[UnityFFB] EnumDevices: Caps flags=0x%08x ff=%d axes=%d buttons=%d povs=%d ffSamplePeriod=%d ffMinTimeRes=%d fwRev=%d hwRev=%d",
+         caps.dwFlags, (caps.dwFlags & DIDC_FORCEFEEDBACK) != 0,
+         caps.dwAxes, caps.dwButtons, caps.dwPOVs,
+         caps.dwFFSamplePeriod, caps.dwFFMinTimeResolution,
+         caps.dwFirmwareRevision, caps.dwHardwareRevision);
+   }
+   else {
+      LogMessage("[UnityFFB] EnumDevices: GetCapabilities failed for guid=%s", strGuidInstance.c_str());
+   }
    dvce->Release();
 
    di.vendorId = LOWORD(vidpid.dwData);
@@ -253,6 +332,8 @@ BOOL CALLBACK _cbEnumDevices(const DIDEVICEINSTANCE* pInst, void* pContext)
    }
 
    DIDevice* device = new DIDevice(g_pDI, pInst->guidInstance, di);
+   device->firmwareRevision = firmwareRevision;
+   device->hidPath = hidPath;
    g_mDeviceInstances[strGuidInstance] = device;
    LogMessage("[UnityFFB] EnumDevices: Added '%s' to device map", strInstanceName.c_str());
 
