@@ -21,6 +21,7 @@ public:
    LPDIRECTINPUTDEVICE8 pDevice;
 
    DIDevice(LPDIRECTINPUT8 pDI, GUID deviceGuid, const DeviceInfo& deviceInfo);
+   ~DIDevice();
 
    HRESULT CreateDevice();
    void DestroyDevice();
@@ -33,11 +34,12 @@ public:
 
    HRESULT AddFFBEffect(Effects::Type effectType);
    HRESULT RemoveFFBEffect(Effects::Type effectType);
+   void FreeStoredEffectArrays(Effects::Type effectType, DIEFFECT& effect);
    void StartAllFFBEffects();
    void StopAllFFBEffects();
    HRESULT UpdateEffectGain(Effects::Type effectType, float gainPercent);
    HRESULT UpdateConstantForce(LONG magnitude, LONG* directions);
-   HRESULT UpdateSpring(DICONDITION* conditions);
+   HRESULT UpdateSpring(DICONDITION* conditions, int conditionCount);
    HRESULT SetAutoCenter(bool autoCenter);
    void DestroyEffects();
 

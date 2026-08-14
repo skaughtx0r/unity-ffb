@@ -312,7 +312,7 @@ namespace UnityFFB
                                 springConditions[i].positiveSaturation = 10000;
                             }
                         }
-                        Native.UpdateSpring(guid, springConditions);
+                        Native.UpdateSpring(guid, springConditions, springConditions.Length);
                         Native.StartAllFFBEffects(guid);
                         springForceEnabled = true;
                         effectsEnabled = true;
@@ -343,7 +343,7 @@ namespace UnityFFB
             if (!springForceEnabled || activeDevice == null) { return; }
 
             springConditions = conditions;
-            int hresult = Native.UpdateSpring(activeDevice.Value.guidInstance, springConditions);
+            int hresult = Native.UpdateSpring(activeDevice.Value.guidInstance, springConditions, springConditions.Length);
             if (hresult != 0)
             {
                 Debug.LogError($"[UnityFFB] UpdateSpringForce Failed: 0x{hresult.ToString("x")} {WinErrors.GetSystemMessage(hresult)}");

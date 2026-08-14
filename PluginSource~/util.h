@@ -24,3 +24,9 @@ std::function<void()> Debounce(const std::function<void()>&f, int period);
 
 void LogMessage(const char* format, ...);
 void SetLogDirectory(LPCSTR path);
+
+// Deep-copy / free the four heap strings inside a DeviceInfo. Every DeviceInfo
+// held in a container (g_vDeviceInstances, DIDevice::deviceInfo) owns its own
+// strings; these helpers keep that invariant so frees can't dangle a sibling copy.
+DeviceInfo DeepCopyDeviceInfo(const DeviceInfo& src);
+void FreeDeviceInfoStrings(DeviceInfo& di);

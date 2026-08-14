@@ -132,7 +132,7 @@ void FlattenDIJOYSTATE2(DIJOYSTATE2& deviceState, FlatJoyState2& state) {
    // ButtonB
    for (int i = 64; i < 128; i++) { // 2nd bank of buttons from 64-128
       if (deviceState.rgbButtons[i] == 128) // 128 = Button pressed
-         state.buttonsB |= (unsigned long long)1 << i; // Shift in a 1 to the button at index i
+         state.buttonsB |= (unsigned long long)1 << (i - 64); // Shift in a 1 to the button at index i, rebased to bank B's bit 0 (<< i was UB for i >= 64)
    }
 
    state.lX = deviceState.lX; // X-axis
@@ -213,6 +213,39 @@ void FlattenDIJOYSTATE2(DIJOYSTATE2& deviceState, FlatJoyState2& state) {
    }
 }
 
+// Rotate the log once per path per process so multi-session appends can't grow
+// unbounded: when the file already exceeds the cap at startup, the old content
+// moves to unityffb.prev.log (replacing any older one) and a fresh file starts.
+static const uintmax_t kLogRotateBytes = 1024 * 1024;
+
+static void RotateLogIfNeeded(const std::string& path) {
+   static std::string rotatedForPath = "";
+   if (path == rotatedForPath) {
+      return;
+   }
+   rotatedForPath = path;
+
+   WIN32_FILE_ATTRIBUTE_DATA attrs;
+   if (!GetFileAttributesExA(path.c_str(), GetFileExInfoStandard, &attrs)) {
+      return; // no existing file, nothing to rotate
+   }
+   ULARGE_INTEGER size;
+   size.LowPart = attrs.nFileSizeLow;
+   size.HighPart = attrs.nFileSizeHigh;
+   if (size.QuadPart < kLogRotateBytes) {
+      return;
+   }
+
+   std::string prevPath = path;
+   size_t ext = prevPath.rfind(".log");
+   if (ext != std::string::npos) {
+      prevPath.replace(ext, 4, ".prev.log");
+   } else {
+      prevPath += ".prev";
+   }
+   MoveFileExA(path.c_str(), prevPath.c_str(), MOVEFILE_REPLACE_EXISTING);
+}
+
 void LogMessage(const char* format, ...) {
    char buffer[2048];
    va_list args;
@@ -223,10 +256,41 @@ void LogMessage(const char* format, ...) {
    OutputDebugStringA(buffer);
    OutputDebugStringA("\n");
 
-   std::ofstream log_file(GetLogFilePath(), std::ios_base::out | std::ios_base::app);
+   SYSTEMTIME st;
+   GetLocalTime(&st);
+   char stamp[16];
+   snprintf(stamp, sizeof(stamp), "%02d:%02d:%02d.%03d ", st.wHour, st.wMinute, st.wSecond, st.wMilliseconds);
+
+   const std::string& path = GetLogFilePath();
+   RotateLogIfNeeded(path);
+   std::ofstream log_file(path, std::ios_base::out | std::ios_base::app);
    if (log_file.is_open()) {
-      log_file << buffer << std::endl;
+      log_file << stamp << buffer << std::endl;
    }
+}
+
+static char* DupDeviceString(const char* s) {
+   if (s == NULL) { return NULL; }
+   size_t len = strlen(s) + 1;
+   char* copy = new char[len];
+   strcpy_s(copy, len, s);
+   return copy;
+}
+
+DeviceInfo DeepCopyDeviceInfo(const DeviceInfo& src) {
+   DeviceInfo copy = src;
+   copy.guidInstance = DupDeviceString(src.guidInstance);
+   copy.guidProduct = DupDeviceString(src.guidProduct);
+   copy.instanceName = DupDeviceString(src.instanceName);
+   copy.productName = DupDeviceString(src.productName);
+   return copy;
+}
+
+void FreeDeviceInfoStrings(DeviceInfo& di) {
+   SAFE_DELETE_ARRAY(di.guidInstance);
+   SAFE_DELETE_ARRAY(di.guidProduct);
+   SAFE_DELETE_ARRAY(di.instanceName);
+   SAFE_DELETE_ARRAY(di.productName);
 }
 
 std::function<void()> Debounce(const std::function<void()>&f, int period) {

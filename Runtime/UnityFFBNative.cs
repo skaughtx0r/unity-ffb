@@ -25,7 +25,7 @@ namespace UnityFFB {
         [DllImport(FFBDLL)] public static extern int    UpdateEffectGain(string guidInstance, EffectsType effectType, float gainPercent);
         [DllImport(FFBDLL)] public static extern int    GetDeviceState(string guidInstance, out FlatJoyState2 DeviceStateObj);
         [DllImport(FFBDLL)] public static extern int    UpdateConstantForce(string guidInstance, int magnitude, int[] directions);
-        [DllImport(FFBDLL)] public static extern int    UpdateSpring(string guidInstance, DICondition[] conditions);
+        [DllImport(FFBDLL)] public static extern int    UpdateSpring(string guidInstance, DICondition[] conditions, int conditionCount);
         [DllImport(FFBDLL)] public static extern int    SetAutoCenter(string guidInstance, bool autoCenter);
         [DllImport(FFBDLL)] public static extern void   StartAllFFBEffects(string guidInstance);
         [DllImport(FFBDLL)] public static extern void   StopAllFFBEffects(string guidInstance);

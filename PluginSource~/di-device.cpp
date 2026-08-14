@@ -6,8 +6,15 @@ DIDevice::DIDevice(LPDIRECTINPUT8 pDI, GUID deviceGuid, const DeviceInfo& device
    this->pDevice = NULL;
    this->deviceGuid = deviceGuid;
    this->pDI = pDI;
-   this->deviceInfo = deviceInfo;
+   // Own our strings: the caller's DeviceInfo lives in g_vDeviceInstances, which is
+   // cleared on every re-enumeration while this device may live on in the map.
+   this->deviceInfo = DeepCopyDeviceInfo(deviceInfo);
    this->joyState = { 0 };
+}
+
+DIDevice::~DIDevice() {
+   DestroyDevice();
+   FreeDeviceInfoStrings(deviceInfo);
 }
 
 HRESULT DIDevice::CreateDevice()
@@ -63,10 +70,8 @@ void DIDevice::DestroyDevice()
       pDevice->Release();
       pDevice = NULL;
    }
-   //SAFE_DELETE_ARRAY(deviceInfo.guidInstance);
-   //SAFE_DELETE_ARRAY(deviceInfo.guidProduct);
-   //SAFE_DELETE_ARRAY(deviceInfo.instanceName);
-   //SAFE_DELETE_ARRAY(deviceInfo.productName);
+   // deviceInfo strings are owned by this object and freed in the destructor;
+   // DestroyDevice() must stay re-Create-able (CreateDevice can be called again).
 }
 
 HRESULT DIDevice::Unacquire()
@@ -148,6 +153,7 @@ BOOL CALLBACK DIDevice::_cbEnumFFBAxes(const DIDEVICEOBJECTINSTANCE* pdidoi, voi
    OLECHAR* guidTypeStr;
    StringFromCLSID(pdidoi->guidType, &guidTypeStr);
    std::string strGuidType = utf16ToUTF8(guidTypeStr);
+   CoTaskMemFree(guidTypeStr);
 
    bool isFFBActuator = (pdidoi->dwFlags & DIDOI_FFACTUATOR) != 0;
    LogMessage("[UnityFFB] EnumAxis: '%s' type=%s offset=%d flags=0x%08x ffActuator=%d maxForce=%d",
@@ -297,7 +303,33 @@ HRESULT DIDevice::AddFFBEffect(Effects::Type effectType) {
       }
    }
 
+   if (FAILED(hr))
+   {
+      // Effect not stored, so nothing owns these allocations.
+      delete[] axes;
+      delete[] directions;
+      delete constantForce;
+      delete[] conditions;
+   }
+
    return hr;
+}
+
+// Free the arrays a stored DIEFFECT points at. ConstantForce's type-specific
+// params were a scalar new, Spring's an array new — the delete form must match.
+void DIDevice::FreeStoredEffectArrays(Effects::Type effectType, DIEFFECT& effect)
+{
+   delete[] effect.rgdwAxes;
+   effect.rgdwAxes = NULL;
+   delete[] effect.rglDirection;
+   effect.rglDirection = NULL;
+   if (effectType == Effects::Type::ConstantForce) {
+      delete (DICONSTANTFORCE*)effect.lpvTypeSpecificParams;
+   }
+   else if (effectType == Effects::Type::Spring) {
+      delete[] (DICONDITION*)effect.lpvTypeSpecificParams;
+   }
+   effect.lpvTypeSpecificParams = NULL;
 }
 
 HRESULT DIDevice::RemoveFFBEffect(Effects::Type effectType)
@@ -306,11 +338,13 @@ HRESULT DIDevice::RemoveFFBEffect(Effects::Type effectType)
 
    if (mEffects.find(effectType) != mEffects.end())
    {
+      LogMessage("[UnityFFB] RemoveFFBEffect: type=%d for '%s'", effectType, deviceInfo.instanceName);
       LPDIRECTINPUTEFFECT pEffect = mEffects[effectType];
 
       pEffect->Stop();
       pEffect->Release();
       mEffects.erase(effectType);
+      FreeStoredEffectArrays(effectType, mDIEFFECTs[effectType]);
       mDIEFFECTs.erase(effectType);
 
       hr = S_OK;
@@ -336,6 +370,8 @@ HRESULT DIDevice::UpdateEffectGain(Effects::Type effectType, float gainPercent)
       effect.dwSize = sizeof(DIEFFECT);
       effect.dwGain = (DWORD)(clamp(gainPercent, 0.0, 1.0) * DI_FFNOMINALMAX);
 
+      // DIEP_START is load-bearing: the game's focus-regain flow (FFBSettings in
+      // HydroSim) relies on a gain update restarting effects stopped by Unacquire.
       hr = pEffect->SetParameters(&effect, DIEP_GAIN | DIEP_START);
    }
 
@@ -377,7 +413,7 @@ HRESULT DIDevice::UpdateConstantForce(LONG magnitude, LONG* directions)
  * Updates the spring effect. You must pass an array of conditions that's
  * size matches the number of axes on the device.
  */
-HRESULT DIDevice::UpdateSpring(DICONDITION* conditions)
+HRESULT DIDevice::UpdateSpring(DICONDITION* conditions, int conditionCount)
 {
    HRESULT hr = E_FAIL;
 
@@ -385,11 +421,18 @@ HRESULT DIDevice::UpdateSpring(DICONDITION* conditions)
    {
       LPDIRECTINPUTEFFECT pEffect = mEffects[Effects::Type::Spring];
 
-      int axisCount = (int)vDeviceAxes.size();
-
+      // The stored DIEFFECT's cAxes/cbTypeSpecificParams and the arrays they
+      // describe were sized when AddFFBEffect created the effect. The live axis
+      // list can differ by now (device-change re-enumeration), so never size
+      // writes off vDeviceAxes here — bound them by the creation-time allocation
+      // and by how many conditions the caller actually passed.
       DIEFFECT effect = mDIEFFECTs[Effects::Type::Spring];
-      effect.cAxes = axisCount;
-      effect.cbTypeSpecificParams = sizeof(DICONDITION) * axisCount;
+      int allocCount = (int)(effect.cbTypeSpecificParams / sizeof(DICONDITION));
+      int axisCount = conditionCount < allocCount ? conditionCount : allocCount;
+      if (axisCount < allocCount) {
+         LogMessage("[UnityFFB] UpdateSpring: caller passed %d condition(s) for %d allocated axis/axes on '%s' - updating first %d only",
+            conditionCount, allocCount, deviceInfo.instanceName, axisCount);
+      }
       for (int i = 0; i < axisCount; i++) {
          ((DICONDITION*)effect.lpvTypeSpecificParams)[i].lOffset = conditions[i].lOffset;
          ((DICONDITION*)effect.lpvTypeSpecificParams)[i].lPositiveCoefficient = conditions[i].lPositiveCoefficient;
@@ -462,5 +505,8 @@ void DIDevice::DestroyEffects()
       }
    }
    mEffects.clear();
+   for (auto& effect : mDIEFFECTs) {
+      FreeStoredEffectArrays(effect.first, effect.second);
+   }
    mDIEFFECTs.clear();
 }

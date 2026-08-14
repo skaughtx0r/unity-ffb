@@ -9,6 +9,9 @@
 #include "di-device.h"
 #include <set>
 
+// Keep in sync with package.json
+#define UNITYFFB_VERSION "0.4.19"
+
 std::map<std::string, DIDevice*> g_mDeviceInstances;
 std::vector<DeviceInfo> g_vDeviceInstances;
 
@@ -32,6 +35,11 @@ HRESULT StartDirectInput()
       UnhookWindowsHookEx(g_deviceChangedHook);
       g_deviceChangedHook = NULL;
    }
+
+   SYSTEMTIME st;
+   GetLocalTime(&st);
+   LogMessage("[UnityFFB] ======== Session start: v%s pid=%lu %04d-%02d-%02d ========",
+      UNITYFFB_VERSION, GetCurrentProcessId(), st.wYear, st.wMonth, st.wDay);
 
    HMODULE module = GetModuleHandleW(NULL);
    DWORD threadID = GetCurrentThreadId();
@@ -138,7 +146,7 @@ DeviceInfo* EnumerateDevices(int &deviceCount)
    // Purge the devices to be removed
    for (auto& guid : devicesToRemove) {
       LogMessage("[UnityFFB] Removing unplugged device: %s", guid.c_str());
-      g_mDeviceInstances[guid]->DestroyDevice();
+      delete g_mDeviceInstances[guid];
       g_mDeviceInstances.erase(guid);
    }
 
@@ -193,7 +201,7 @@ DeviceInfo* EnumerateDevices(int &deviceCount)
          LogMessage("[UnityFFB] Removing duplicate collection (firmwareRevision=0): '%s' VID=0x%04x PID=0x%04x guid=%s path=%s",
             d->deviceInfo.instanceName, d->deviceInfo.vendorId, d->deviceInfo.productId,
             guid.c_str(), d->hidPath.c_str());
-         d->DestroyDevice();
+         delete d;
          g_mDeviceInstances.erase(guid);
       }
    }
@@ -207,7 +215,9 @@ DeviceInfo* EnumerateDevices(int &deviceCount)
          device.second->deviceInfo.vendorId,
          device.second->deviceInfo.productId,
          device.second->deviceInfo.hasFFB);
-      g_vDeviceInstances.push_back(device.second->deviceInfo);
+      // Deep copy: the vector frees its entries' strings on the next enumeration,
+      // while the DIDevice keeps using its own.
+      g_vDeviceInstances.push_back(DeepCopyDeviceInfo(device.second->deviceInfo));
    }
 
    if (g_vDeviceInstances.size() > 0)
@@ -250,6 +260,8 @@ BOOL CALLBACK _cbEnumDevices(const DIDEVICEINSTANCE* pInst, void* pContext)
    std::string strGuidProduct = utf16ToUTF8(guidProduct);
    std::string strInstanceName = utf16ToUTF8(pInst->tszInstanceName);
    std::string strProductName = utf16ToUTF8(pInst->tszProductName);
+   CoTaskMemFree(guidInstance);
+   CoTaskMemFree(guidProduct);
 
    HRESULT hr;
    LPDIRECTINPUTDEVICE8 dvce = nullptr;
@@ -350,6 +362,7 @@ BOOL CALLBACK _cbEnumFFBDevices(const DIDEVICEINSTANCE* pInst, void* pContext)
    StringFromCLSID(pInst->guidInstance, &guidInstance);
    std::string strGuidInstance = utf16ToUTF8(guidInstance);
    std::string strInstanceName = utf16ToUTF8(pInst->tszInstanceName);
+   CoTaskMemFree(guidInstance);
 
    LogMessage("[UnityFFB] EnumFFBDevices: '%s' guid=%s", strInstanceName.c_str(), strGuidInstance.c_str());
 
@@ -515,11 +528,11 @@ HRESULT UpdateConstantForce(LPCSTR guidInstance, LONG magnitude, LONG* direction
  * Updates the spring effect. You must pass an array of conditions that's
  * size matches the number of axes on the device.
  */
-HRESULT UpdateSpring(LPCSTR guidInstance, DICONDITION* conditions)
+HRESULT UpdateSpring(LPCSTR guidInstance, DICONDITION* conditions, int conditionCount)
 {
    std::string strInstance = std::string(guidInstance);
    if (g_mDeviceInstances.find(strInstance) != g_mDeviceInstances.end()) {
-      return g_mDeviceInstances[strInstance]->UpdateSpring(conditions);
+      return g_mDeviceInstances[strInstance]->UpdateSpring(conditions, conditionCount);
    }
 
    return E_FAIL;
@@ -565,6 +578,9 @@ void FreeDirectInput()
  */
 void ClearDeviceInstances()
 {
+   for (auto& di : g_vDeviceInstances) {
+      FreeDeviceInfoStrings(di);
+   }
    g_vDeviceInstances.clear();
 }
 
@@ -579,7 +595,7 @@ void StopDirectInput()
       g_deviceChangedHook = NULL;
    }
    for (auto& device : g_mDeviceInstances) {
-      device.second->DestroyDevice();
+      delete device.second;
    }
    g_mDeviceInstances.clear();
    ClearDeviceInstances();
